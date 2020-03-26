@@ -1,2 +1,1 @@
-# lakithaomal
-thermalStereoCalib
+# thermalStereoCalib

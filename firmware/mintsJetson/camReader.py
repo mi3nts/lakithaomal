@@ -163,9 +163,8 @@ def getImagePathTailHdf5Mod2(dateTime,labelIn):
 
     return pathTail;
 
-def directoryCheck(outputPath):
-    exists = os.path.isfile(outputPath)
-    directoryIn = os.path.dirname(outputPath)
-    if not os.path.exists(directoryIn):
+def folderCheck(outputPath):
+    exists = os.path.isdir(outputPath)
+    if not exists:
         os.makedirs(directoryIn)
     return exists

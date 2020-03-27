@@ -203,8 +203,8 @@ print(rightCamIndex)
 # #Initiate the cameras
 print("Initiating Visual Cameras with Maximum Resolution")
 
-capLeft  = cr.openUSBCam(leftCamIndex,2560,1920)
-capRight =  openUSBCam(rightCamIndex,2560,1920)
+capLeft  =  cr.openUSBCam(leftCamIndex,2560,1920)
+capRight =  cr.openUSBCam(rightCamIndex,2560,1920)
 
 print("Initiating the Thermal Camera")
 BUF_SIZE = 2
@@ -216,6 +216,9 @@ directory = "/home/teamlary/mintsData/jetson001/"
 
 
 print("Creating Directories")
+folderCheck(directory+"left")
+folderCheck(directory+"right")
+folderCheck(directory+"thermal")
 
 
 def main():

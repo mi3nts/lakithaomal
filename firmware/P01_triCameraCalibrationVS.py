@@ -63,8 +63,10 @@ print(rightCamIndex)
 # #Initiate the cameras
 print("Initiating Visual Cameras with Maximum Resolution")
 
-capLeft  =  WebcamVideoStream(leftCamIndex).start()
 capRight =  WebcamVideoStream(rightCamIndex).start()
+time.sleep(5)
+capLeft  =  WebcamVideoStream(leftCamIndex).start()
+
 
 print("Initiating the Thermal Camera")
 BUF_SIZE = 2
@@ -136,6 +138,8 @@ def main():
         while(True):
 
             dateTime    = datetime.datetime.now()
+            print(dateTime)
+            time.sleep(4)
             thermalData = q.get(True, 500)
             leftImage  = capLeft.read()
             rightImage = capRight.read()
@@ -156,8 +160,8 @@ def main():
             cv2.imwrite(leftImageName,leftImage)
             cv2.imwrite(rightImageName,rightImage)
             cv2.imwrite(thermalImageName,thermalImage)
-            time.sleep(1)
-            print(dateTime)
+
+           
             # cv2.imshow("Left",imutils.resize(leftImage, width=640))
             # cv2.imshow("Right", imutils.resize(rightImage, width=640))
             # cv2.imshow("Thermal", thermalImage)

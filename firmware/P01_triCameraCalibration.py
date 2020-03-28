@@ -18,9 +18,9 @@ import platform
 import os
 # import threading
 import time
-import imutils
+# import imutils
 import numpy, scipy.io
-from imutils.video import WebcamVideoStream
+# from imutils.video import WebcamVideoStream
 # from matplotlib import pyplot as plt
 # from matplotlib.animation import FuncAnimation
 # from PIL import Image

@@ -46,7 +46,7 @@ def display_temperature(img, val_k, loc, color):
 def getLeftWebCamIndex(myCmd):
     lines = myCmd.splitlines()
     for num, name in enumerate(lines, start=1):
-        if "2.3" in name:
+        if "2.2" in name:
             camString =  int(lines[num].strip().replace("/dev/video",""))
             return  True ,camString;
 

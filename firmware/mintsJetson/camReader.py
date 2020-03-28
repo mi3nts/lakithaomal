@@ -1,26 +1,29 @@
+import cv2
+import os
+import numpy as np
+from imutils.video import WebcamVideoStream
+# def py_frame_callback(frame, userptr):
 
-def py_frame_callback(frame, userptr):
+#   array_pointer = cast(frame.contents.data, POINTER(c_uint16 * (frame.contents.width * frame.contents.height)))
+#   data = np.frombuffer(
+#     array_pointer.contents, dtype=np.dtype(np.uint16)
+#   ).reshape(
+#     frame.contents.height, frame.contents.width
+#   ) # no copy
 
-  array_pointer = cast(frame.contents.data, POINTER(c_uint16 * (frame.contents.width * frame.contents.height)))
-  data = np.frombuffer(
-    array_pointer.contents, dtype=np.dtype(np.uint16)
-  ).reshape(
-    frame.contents.height, frame.contents.width
-  ) # no copy
+#   # data = np.fromiter(
+#   #   frame.contents.data, dtype=np.dtype(np.uint8), count=frame.contents.data_bytes
+#   # ).reshape(
+#   #   frame.contents.height, frame.contents.width, 2
+#   # ) # copy
 
-  # data = np.fromiter(
-  #   frame.contents.data, dtype=np.dtype(np.uint8), count=frame.contents.data_bytes
-  # ).reshape(
-  #   frame.contents.height, frame.contents.width, 2
-  # ) # copy
+#   if frame.contents.data_bytes != (2 * frame.contents.width * frame.contents.height):
+#     return
 
-  if frame.contents.data_bytes != (2 * frame.contents.width * frame.contents.height):
-    return
+#   if not q.full():
+#     q.put(data)
 
-  if not q.full():
-    q.put(data)
-
-PTR_PY_FRAME_CALLBACK = CFUNCTYPE(None, POINTER(uvc_frame), c_void_p)(py_frame_callback)
+# # PTR_PY_FRAME_CALLBACK = CFUNCTYPE(None, POINTER(uvc_frame), c_void_p)(py_frame_callback)
 
 def ktof(val):
   return (1.8 * ktoc(val) + 32.0)
@@ -86,6 +89,7 @@ def getImagePathTail(dateTime,labelIn):
     "_" +str(dateTime.hour).zfill(2) + \
     "_" +str(dateTime.minute).zfill(2)+ \
     "_" +str(dateTime.second).zfill(2)+ \
+    "_" +str(dateTime.microsecond).zfill(6)+ \
     "_"+labelIn+".jpg"
     # print(pathTail)
     return pathTail;
@@ -149,6 +153,15 @@ def openUSBCam(dev, width, height):
                'videoconvert ! appsink').format(dev, width, height)
     return cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
 
+def openUSBCamVS(dev, width, height):
+    # We want to set width and height here, otherwise we could just do:
+    #     return cv2.VideoCapture(dev)
+    gst_str = ('v4l2src device=/dev/video{} ! '
+               'video/x-raw, width=(int){}, height=(int){} ! '
+               'videoconvert ! appsink').format(dev, width, height)
+    return WebcamVideoStream(gst_str, cv2.CAP_GSTREAMER).start()
+
+
 def getImagePathTailHdf5Mod2(dateTime,labelIn):
 
     pathTail = labelIn+"/"+\
@@ -166,5 +179,5 @@ def getImagePathTailHdf5Mod2(dateTime,labelIn):
 def folderCheck(outputPath):
     exists = os.path.isdir(outputPath)
     if not exists:
-        os.makedirs(directoryIn)
+        os.makedirs(outputPath)
     return exists

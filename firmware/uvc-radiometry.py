@@ -10,6 +10,7 @@ try:
 except ImportError:
   from Queue import Queue
 import platform
+import datetime
 
 BUF_SIZE = 2
 q = Queue(BUF_SIZE)
@@ -103,8 +104,8 @@ def main():
           if data is None:
             break
           data = cv2.resize(data[:,:], (640, 480))
-          print(data)
-          print(data.shape)
+          print(datetime.datetime.now())
+          # print(data.shape)
           minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(data)
           
           img = raw_to_8bit(data)

@@ -63,8 +63,8 @@ print(rightCamIndex)
 # #Initiate the cameras
 print("Initiating Visual Cameras with Maximum Resolution")
 
-capLeft  =  cr.openUSBCam(leftCamIndex,2592, 1944)
-capRight =  cr.openUSBCam(rightCamIndex,2592, 1944)
+capLeft  =  WebcamVideoStream(leftCamIndex).start()
+capRight =  WebcamVideoStream(rightCamIndex).start()
 
 print("Initiating the Thermal Camera")
 BUF_SIZE = 2
@@ -137,10 +137,10 @@ def main():
 
             dateTime    = datetime.datetime.now()
             thermalData = q.get(True, 500)
-            retLeft , leftImage  = capLeft.read()
-            retRight, rightImage = capRight.read()
-
-            if (thermalData is None) or ((leftImage is None) or (leftImage is None)) :
+            leftImage  = capLeft.read()
+            rightImage = capRight.read()
+         
+            if (thermalData is None) or ((leftImage is None) or (rightImage is None)) :
               print(thermalData)
               print(leftImage)
               print(rightImage) 
@@ -152,16 +152,30 @@ def main():
 
             thermalData   = cv2.resize(thermalData[:,:], (640, 480))
             thermalImage  = cr.raw_to_8bit(thermalData)
-            
+
             cv2.imwrite(leftImageName,leftImage)
             cv2.imwrite(rightImageName,rightImage)
             cv2.imwrite(thermalImageName,thermalImage)
+            time.sleep(1)
             print(dateTime)
+            # cv2.imshow("Left",imutils.resize(leftImage, width=640))
+            # cv2.imshow("Right", imutils.resize(rightImage, width=640))
+            # cv2.imshow("Thermal", thermalImage)
+            # key = cv2.waitKey(1) & 0xFF
 
+            # if(retLeft and retRight):
+            #     # hf = h5py.File(threeWayImageName, 'w')
+            #     # print(threeWayImageName)
+            #     # hf.create_dataset('left' , data=leftImage)
+            #     # hf.create_dataset('thermal', data=thermalData)
+            #     # hf.create_dataset('right', data=rightImage)
+            #     # hf.close()
 
         # When everything done, release the capture
-        capLeft.release()
-        capRight.release()
+        # capLeft.release()
+        # capRight.release()
+        capLeft.stop()
+        capRight.stop()
         cv2.destroyAllWindows()
 
 

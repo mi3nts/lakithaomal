@@ -41,7 +41,7 @@ cr.printLabel("Logging Inputs")
 
 highResolution = True
 imageSave      = True 
-display        = False
+display        = True
 
 directory = "/home/teamlary/mintsData/jetson001/"
 width     = 2592
@@ -53,6 +53,12 @@ if not highResolution:
     width     = 640
     height    = 480
     frameRate = 30
+
+cr.printLabel("Assigning Queues:")
+qThermal  = Queue(maxsize = 5) 
+
+print("High Resolution: {}, Image Saving: {}, Display: {}".format(highResolution,imageSave,display))
+
 
 cr.printLabel("Script Parametors:")
 print("High Resolution: {}, Image Saving: {}, Display: {}".format(highResolution,imageSave,display))
@@ -141,13 +147,11 @@ def main():
             if res <0:
                 print("uvc_start_streaming failed: {0}".format(res))
                 exit(1)
-            
-            check = 10
 
             try:
                 startTime = time.time()
                 cr.printLabel("Initiating Checks")
-                for n in range(check):
+                for n in range(10):
                     print("Check: " + str(n+1))
                     q.get(True, 500)
                     retLeft, frameLeft     = capLeft.read()
@@ -159,33 +163,38 @@ def main():
                     
                 cr.printLabel("Entering While Loop")
                 while True:
-                    dateTime = datetime.datetime.now()
-                    thermalData            = q.get(True, 500)
+                    dateTime          = datetime.datetime.now()
+                    thermalData       = q.get(True, 500)
                     retLeft, left     = capLeft.read()
                     retRight,right    = capRight.read()
+
                     if not retLeft:
                         print('Empty Left frame')                   
                     if not retRight:
                         print('Empty Right frame')
 
-                    thermalData   = cv2.resize(thermalData[:,:], (640, 480))
-                    thermal       = cr.raw_to_8bit(thermalData)
+                    qThermal.put(cr.thermalRawConvert(thermalData))
 
-                    if(imageSave):                    
-                        leftImageName      = directory + cr.getImagePathTail(dateTime,'left')
-                        rightImageName     = directory + cr.getImagePathTail(dateTime,'right')
-                        thermalImageName   = directory + cr.getImagePathTail(dateTime,'thermal')
+                    if(qThermal.full()):
+                        print(dateTime)
+                        thermal = qThermal.get()
+                        if(imageSave):                    
+                            leftImageName      = directory + cr.getImagePathTail(dateTime,'left')
+                            rightImageName     = directory + cr.getImagePathTail(dateTime,'right')
+                            thermalImageName   = directory + cr.getImagePathTail(dateTime,'thermal')
 
-                        cv2.imwrite(leftImageName,left )
-                        cv2.imwrite(rightImageName,right)
-                        cv2.imwrite(thermalImageName,thermal)
+                            cv2.imwrite(leftImageName,left )
+                            cv2.imwrite(rightImageName,right)
+                            cv2.imwrite(thermalImageName,thermal)
 
-                    if(display):
-                        cv2.imshow('Left Frame' , imutils.resize(left, width=640))
-                        cv2.imshow('Right Frame', imutils.resize(right, width=640))
-                        cv2.imshow('Thermal Frame', imutils.resize(thermal, width=640))
-
-                    print(dateTime)
+                        if(display):
+                            cv2.imshow('Left Frame' , imutils.resize(left, width=640))
+                            cv2.imshow('Right Frame', imutils.resize(right, width=640))
+                            cv2.imshow('Thermal Frame', imutils.resize(thermal, width=640))
+                    else:
+                        print("Thermal Queue not full")
+                        print("Thermal Queue Size: {}".format(qThermal.qsize()))
+                    # 
 
 
 

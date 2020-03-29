@@ -215,6 +215,10 @@ def folderCheck(outputPath):
 
     return exists
 
+def thermalRawConvert(thermalData):
+  return raw_to_8bit(cv2.resize(thermalData[:,:], (640, 480)))
+
+  
 def printLabel(inputString):
     print(" ")
     print("------------------------------------------")

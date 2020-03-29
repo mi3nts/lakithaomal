@@ -1,3 +1,22 @@
+# ***************************************************************************
+#   camReader
+#   ---------------------------------
+#   Written by: Lakitha Omal Harindha Wijeratne
+#   - for -
+#   Mints: Multi-scale Integrated Sensing and Simulation
+#      &
+#   algolook.com
+#   ---------------------------------
+#   Date: March 29 th, 2019
+#   ---------------------------------
+#   This module is written for generic implimentation of MINTS projects
+#   --------------------------------------------------------------------------
+#   https://github.com/mi3nts
+#   http://utdmints.info/
+#
+#  ***************************************************************************
+
+
 import cv2
 import os
 import numpy as np
@@ -145,6 +164,16 @@ def grab_frame(cap):
     ret,frame = cap.read()
     return cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
 
+
+def openWebCamMPGJ(dev, width, height,framerate):
+    gst = ('v4l2src device=/dev/video{} do-timestamp=true ! \
+         image/jpeg, width={}, height={}, framerate={}/1 \
+           ! jpegparse ! jpegdec ! videoconvert ! appsink ').format(dev, width, height,framerate)
+
+    return cv2.VideoCapture(gst, cv2.CAP_GSTREAMER)
+
+
+
 def openUSBCam(dev, width, height):
     # We want to set width and height here, otherwise we could just do:
     #     return cv2.VideoCapture(dev)
@@ -179,5 +208,19 @@ def getImagePathTailHdf5Mod2(dateTime,labelIn):
 def folderCheck(outputPath):
     exists = os.path.isdir(outputPath)
     if not exists:
+        print("Creating fDirectory '{}'".format(outputPath))
         os.makedirs(outputPath)
+    else:
+        print("Directory '{}' exists".format(outputPath))
+
     return exists
+
+def printLabel(inputString):
+    print(" ")
+    print("------------------------------------------")
+    print(inputString)
+
+def printMINTS(inputString):
+    print(" ")
+    print("============== MINTS {} ==============".format(inputString))
+    print(" ")

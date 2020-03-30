@@ -208,7 +208,7 @@ def getImagePathTailHdf5Mod2(dateTime,labelIn):
 def folderCheck(outputPath):
     exists = os.path.isdir(outputPath)
     if not exists:
-        print("Creating fDirectory '{}'".format(outputPath))
+        print("Creating Directory '{}'".format(outputPath))
         os.makedirs(outputPath)
     else:
         print("Directory '{}' exists".format(outputPath))
@@ -218,7 +218,7 @@ def folderCheck(outputPath):
 def thermalRawConvert(thermalData):
   return raw_to_8bit(cv2.resize(thermalData[:,:], (640, 480)))
 
-  
+
 def printLabel(inputString):
     print(" ")
     print("------------------------------------------")

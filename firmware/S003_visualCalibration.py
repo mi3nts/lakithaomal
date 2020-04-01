@@ -1,4 +1,4 @@
- #
+#
 # % # ***************************************************************************
 # % #   Stereo Vision - Thermal
 # % #   ---------------------------------
@@ -6,7 +6,7 @@
 # % #   - for -
 # % #   Mints: Multi-scale Integrated Sensing and Simulation
 # % #   ---------------------------------
-# % #   Date: January 23rd, 2020
+# % #   Date: March 30th, 2020
 # % #   ---------------------------------
 # % #   This module is written for generic implimentation of MINTS projects
 # % #   --------------------------------------------------------------------------
@@ -26,28 +26,36 @@ from scipy.io import loadmat
 import numpy as np
 from matplotlib import pyplot as plt
 import cv2
+from mintsJetson import camReader as cr
 
-horizontalSquares = 8
-verticalSquares   = 7
+cr.printMINTS("fevSen")
 
-horizontalInnerCorners = horizontalSquares-1
-verticalInnerCorners   = verticalSquares-1
-
-objp        = np.zeros((horizontalInnerCorners*verticalInnerCorners, 3), np.float32)
-objp[:, :2] = np.mgrid[0:horizontalInnerCorners, 0:verticalInnerCorners].T.reshape(-1, 2)
-# Arrays to store object points and image points from all the images.
-
-objPoints      = []  # 3d point in real world space
-imgPointsLeft  = []  # 2d points in image plane.
-imgPointsRight = []  # 2d points in image plane.
-
-
-leftAndRightParametors = loadmat('dataProducts/pythonLeftAndRightFeb10.mat')
+cr.printLabel("Loading Stereo Vision Parametors From Matlab")
+leftAndRightParametors = loadmat('dataFiles/DF_002_pythonVisualJetson001_Set2_2020_04_01.mat')
 allImagePoints         = leftAndRightParametors['imagePoints']
 leftImagePoints        = leftAndRightParametors['leftImagePoints']
 rightImagePoints       = leftAndRightParametors['rightImagePoints']
 imageFileNamesLeft     = leftAndRightParametors['imageFileNames1']
 imageFileNamesRight    = leftAndRightParametors['imageFileNames2']
+
+
+cr.printLabel("Defining Chekerboard Specifications")
+horizontalSquares = 8
+verticalSquares   = 7
+horizontalInnerCorners = horizontalSquares-1
+verticalInnerCorners   = verticalSquares-1
+scaleFactor = 4
+
+cr.printLabel("Defining 3D Object Points")
+objp        = np.zeros((horizontalInnerCorners*verticalInnerCorners, 3), np.float32)
+objp[:, :2] = np.mgrid[0:horizontalInnerCorners, 0:verticalInnerCorners].T.reshape(-1, 2)
+
+# Arrays to store object points and image points from all the images.
+cr.printLabel("Defining World Points and Image Points")
+objPoints      = []  # 3d point in real world space
+imgPointsLeft  = []  # 2d points in image plane.
+imgPointsRight = []  # 2d points in image plane.
+
 
 #  Organizing Corner Points
 print("Organizing Corner Points")
@@ -81,59 +89,27 @@ rightCorners = np.array(rightImageCorners)
 
 
 
-print("Rearanging Corners")
-
-leftCornersArranged  = leftCorners
-rightCornersArranged = rightCorners
-
-for imageIndex in range(len(leftImagePoints[0][0])):
-
-    currentLeftCornerPoints = leftCorners[imageIndex]
-
-    for cornerIndex in range(len(leftImagePoints)):
-
-        arrangedIndex = horizontalInnerCorners*((cornerIndex)%verticalInnerCorners)\
-                            + math.floor(cornerIndex/verticalInnerCorners)
-
-        leftCornersArranged[imageIndex][arrangedIndex]  = \
-                                        leftImageCorners[imageIndex][cornerIndex]
-        rightCornersArranged[imageIndex][arrangedIndex] = \
-                                        rightImageCorners[imageIndex][cornerIndex]
+cr.printLabel("Gaining Corner Points from the Matlab Deployment")
+leftCorners,rightCorners, objPoints = cr.mat2PyGetImageCornersStereo(\
+                                                        leftImagePoints,\
+                                                        rightImagePoints,\
+                                                        objp,\
+                                                        horizontalInnerCorners,\
+                                                        verticalInnerCorners\
+                                                        )
 
 
+cr.printLabel("Gaining Stereo File Names from the Matlab Deployment")
+leftFileNames,rightFileNames = cr.mat2PyGetStereoFileNames(imageFileNamesLeft,imageFileNamesRight)
 
-# Organizing the file names
-print("Organizing File Names")
-for leftImageFileName,rightImageFileName in zip(imageFileNamesLeft[0],imageFileNamesRight[0]):
-    leftFileNames.append(leftImageFileName[0])
-    rightFileNames.append(rightImageFileName[0])
 
-#
-# Verification of Corner Points
-print("Verification of Corner Points")
-subpix_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.01)
+cr.printLabel("Verification of Stereo Corners")
+cr.displayCornerPointsStereo(leftCorners,rightCorners,leftFileNames,rightFileNames,\
+                                        horizontalInnerCorners,verticalInnerCorners,\
+                                        500)
 
-for leftCornersCurrent,leftFileNamesCurrent,rightCornersCurrent,rightFileNamesCurrent in \
-                zip(leftCornersArranged,leftFileNames,rightCornersArranged,rightFileNames):
 
-    imgLeft  = cv2.imread(leftFileNamesCurrent)
-    imgRight = cv2.imread(rightFileNamesCurrent)
 
-    grayLeft   = cv2.cvtColor(imgLeft, cv2.COLOR_BGR2GRAY)
-    grayRight   = cv2.cvtColor(imgRight, cv2.COLOR_BGR2GRAY)
-
-    cv2.cornerSubPix(grayLeft, leftCornersCurrent, (3, 3), (-1, -1), subpix_criteria)
-    cv2.drawChessboardCorners(imgLeft, (horizontalInnerCorners,verticalInnerCorners),\
-            leftCornersCurrent, True)
-    cv2.imshow("LEFT", imgLeft)
-
-    cv2.cornerSubPix(grayRight, rightCornersCurrent, (3, 3), (-1, -1), subpix_criteria)
-    cv2.drawChessboardCorners(imgRight, (horizontalInnerCorners,verticalInnerCorners),\
-            rightCornersCurrent, True)
-    cv2.imshow("RIGHT", imgRight)
-    cv2.waitKey(100)
-
-cv2.destroyAllWindows()
 
 print("Get Image Size")
 imgLeft  = cv2.imread(leftFileNames[0])
@@ -141,12 +117,12 @@ imgSize = (imgLeft.shape[1], imgLeft.shape[0])
 
 print("Calibrating Stereo Cameras")
 retLeft, mtxLeft, distLeft, rvecsLeft, tvecsLeft      = cv2.calibrateCamera(\
-                                                        objPoints, leftCorners, imgSize, None, None)
+                                                       objPoints, leftCorners, imgSize, None, None)
 print("Left Camera Calibrated")
 
 
 retRight, mtxRight, distRight, rvecsRight, tvecsRight = cv2.calibrateCamera(\
-                                                        objPoints, rightCorners, imgSize, None, None)
+                                                       objPoints, rightCorners, imgSize, None, None)
 print("Right Camera Calibrated")
 
 print("==============================")
@@ -204,14 +180,14 @@ mapXRight, mapYRight = cv2.initUndistortRectifyMap(mtxLeft, \
 #  Runnning a Test
 print("Doing a Test Image")
 
-imLeft          = cv2.imread(leftImageFileName[0])
-imRight         = cv2.imread(rightImageFileName[0])
+imLeft          = cv2.imread(leftFileNames[0])
+imRight         = cv2.imread(rightFileNames[0])
 imLeftRemapped  = cv2.remap(imLeft,mapXLeft,mapYLeft,cv2.INTER_CUBIC)
 imRightRemapped = cv2.remap(imRight,mapXRight,mapYRight,cv2.INTER_CUBIC)
 
-cv2.imshow(leftImageFileName[0],imLeftRemapped)
-cv2.imshow(rightImageFileName[0],imRightRemapped)
-cv2.waitKey(10000)
+cv2.imshow(leftFileNames[0]+"remapped",imLeftRemapped)
+cv2.imshow(rightFileNames[0]+"remapped",imRightRemapped)
+cv2.waitKey(60000)
 cv2.destroyAllWindows()
 
 print("Saving Camera Parametors")
@@ -245,9 +221,9 @@ mapXRightReverse,mapYRightReverse = invert_maps(mapXRight,mapYRight)
 imLeftRemappedReverse  = cv2.remap(imLeftRemapped,mapXLeftReverse,mapYLeftReverse,cv2.INTER_CUBIC)
 imRightRemappedReverse = cv2.remap(imRightRemapped,mapXRightReverse,mapYRightReverse,cv2.INTER_CUBIC)
 
-cv2.imshow(leftImageFileName[0],imLeftRemappedReverse)
-cv2.imshow(rightImageFileName[0],imRightRemappedReverse)
-cv2.waitKey(10000)
+cv2.imshow(leftFileNames[0],imLeftRemappedReverse)
+cv2.imshow(rightFileNames[0],imRightRemappedReverse)
+cv2.waitKey(60000)
 cv2.destroyAllWindows()
 
 
@@ -262,25 +238,10 @@ stereoParams = {'M1':M1, 'd1':d1, 'M2': M1, 'd2': d2, 'R':R, 'T':T, 'E':E, 'F':F
 
 print(stereoParams)
 
-cv2.imshow(leftImageFileName[0],imLeftRemapped)
-cv2.imshow(rightImageFileName[0],imRightRemapped)
+cv2.imshow(leftFileNames[0]+"remapped2",imLeftRemapped)
+cv2.imshow(rightFileNames[0]+"remapped2",imRightRemapped)
 cv2.waitKey(10000)
 cv2.destroyAllWindows()
 
 
-pickle.dump( stereoParams, open( "stereoParams_Feb_25_2020.p", "wb" ) )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#
+# pickle.dump( stereoParams, open( "stereoParams_Feb_25_2020.p", "wb" ) )

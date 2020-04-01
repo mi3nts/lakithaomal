@@ -21,6 +21,7 @@ import cv2
 import os
 import numpy as np
 from imutils.video import WebcamVideoStream
+import math
 # def py_frame_callback(frame, userptr):
 
 #   array_pointer = cast(frame.contents.data, POINTER(c_uint16 * (frame.contents.width * frame.contents.height)))
@@ -217,6 +218,95 @@ def folderCheck(outputPath):
 
 def thermalRawConvert(thermalData):
   return raw_to_8bit(cv2.resize(thermalData[:,:], (640, 480)))
+
+
+
+def mat2PyGetImageCornersStereo(leftImagePoints,rightImagePoints,objp,\
+                                    horizontalInnerCorners,verticalInnerCorners):
+    printLabel("Reading Corner Points from Stereo Visual Cameras")
+    objPoints         = []  # 3d point in real world space
+    leftImageCorners  = []
+    rightImageCorners = []
+    leftFileNames     =  []
+    rightFileNames    = []
+
+
+    for imageIndex in range(len(leftImagePoints[0][0])):
+       leftImageCurrentCorners  = []
+       rightImageCurrentCorners = []
+       objPoints.append(objp)
+
+       for cornerIndex in range(len(leftImagePoints)):
+
+           leftXCordCurrent= np.float32(leftImagePoints[cornerIndex][0][imageIndex])
+           leftYCordCurrent= np.float32(leftImagePoints[cornerIndex][1][imageIndex])
+           leftImageCurrentCorners.append([[leftXCordCurrent,leftYCordCurrent]])
+
+           rightXCordCurrent = np.float32(rightImagePoints[cornerIndex][0][imageIndex])
+           rightYCordCurrent = np.float32(rightImagePoints[cornerIndex][1][imageIndex])
+           rightImageCurrentCorners.append([[rightXCordCurrent,rightYCordCurrent]])
+
+       leftImageCorners.append(leftImageCurrentCorners)
+       rightImageCorners.append(rightImageCurrentCorners)
+
+    leftCorners = np.array(leftImageCorners)
+    rightCorners = np.array(rightImageCorners)
+
+
+    printLabel("Rearranging Corners of Stereo Cameras to Suit Python Deployments")
+
+    leftCornersArranged  = leftCorners
+    rightCornersArranged = rightCorners
+
+    for imageIndex in range(len(leftImagePoints[0][0])):
+       currentLeftCornerPoints = leftCorners[imageIndex]
+       for cornerIndex in range(len(leftImagePoints)):
+           arrangedIndex = horizontalInnerCorners*((cornerIndex)%verticalInnerCorners)\
+                               + math.floor(cornerIndex/verticalInnerCorners)
+           leftCornersArranged[imageIndex][arrangedIndex]  = \
+                                           leftImageCorners[imageIndex][cornerIndex]
+           rightCornersArranged[imageIndex][arrangedIndex] = \
+                                           rightImageCorners[imageIndex][cornerIndex]
+    return leftCornersArranged,rightCornersArranged, objPoints;
+
+print("Organizing File Names")
+def mat2PyGetStereoFileNames(imageFileNamesLeft,imageFileNamesRight):
+    leftFileNames  =  []
+    rightFileNames  =  []
+    for leftImageFileName,rightImageFileName in zip(imageFileNamesLeft[0],imageFileNamesRight[0]):
+       leftFileNames.append(leftImageFileName[0])
+       rightFileNames.append(rightImageFileName[0])
+
+    return leftFileNames,rightFileNames;
+
+
+def displayCornerPointsStereo(leftCorners,rightCorners,leftFileNames,rightFileNames,\
+                                            horizontalInnerCorners,verticalInnerCorners,
+                                                delayTimeMillis):
+    subpix_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.01)
+
+    for leftCornersCurrent,leftFileNamesCurrent,rightCornersCurrent,rightFileNamesCurrent in \
+                   zip(leftCorners,leftFileNames,rightCorners,rightFileNames):
+
+       imgLeft  = cv2.imread(leftFileNamesCurrent)
+       imgRight = cv2.imread(rightFileNamesCurrent)
+
+       grayLeft   = cv2.cvtColor(imgLeft, cv2.COLOR_BGR2GRAY)
+       grayRight   = cv2.cvtColor(imgRight, cv2.COLOR_BGR2GRAY)
+
+       cv2.cornerSubPix(grayLeft, leftCornersCurrent, (3, 3), (-1, -1), subpix_criteria)
+       cv2.drawChessboardCorners(imgLeft, (horizontalInnerCorners,verticalInnerCorners),\
+               leftCornersCurrent, True)
+       cv2.imshow("Left", imgLeft)
+
+       cv2.cornerSubPix(grayRight, rightCornersCurrent, (3, 3), (-1, -1), subpix_criteria)
+       cv2.drawChessboardCorners(imgRight, (horizontalInnerCorners,verticalInnerCorners),\
+               rightCornersCurrent, True)
+       cv2.imshow("Right", imgRight)
+       cv2.waitKey(delayTimeMillis)
+
+    cv2.destroyAllWindows()
+
 
 
 def printLabel(inputString):

@@ -1,0 +1,105 @@
+# CompilerName=gcc
+# Mode=optim
+ninja_required_version = 1.3
+
+# Basic folders
+root = .
+builddir = $root/build/glnxa64
+matlabdir = /usr/local/MATLAB/R2019b
+startdir = /media/teamlary/Team_Lary_1/gitGubRepos/Lakitha/stereoVisionMatlab/firmware
+
+# Toolchain information
+cc = /usr/bin/gcc
+cxx = g++
+linker = /usr/bin/gcc
+linkerxx = g++
+
+cflags =  -fexceptions -fPIC -fno-omit-frame-pointer -pthread -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -fwrapv -DNDEBUG -std=c99 -I "$root" -I "$startdir" -I "$matlabdir/extern/include" -I "$root/interface" -I "$matlabdir/simulink/include" -I "$matlabdir/rtw/c/src" -I "$matlabdir/rtw/c/src/ext_mode/common" -I "$matlabdir/rtw/c/ert" -I "." -DMODEL=F_02_getImageData_mex -DHAVESTDIO -DUSE_RTMODEL -DUNIX -c 
+
+cxxflags =  -fexceptions -fPIC -fno-omit-frame-pointer -pthread -std=c++11 -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -fwrapv -DNDEBUG -std=c++11 -I "$root" -I "$startdir" -I "$matlabdir/extern/include" -I "$root/interface" -I "$matlabdir/simulink/include" -I "$matlabdir/rtw/c/src" -I "$matlabdir/rtw/c/src/ext_mode/common" -I "$matlabdir/rtw/c/ert" -I "." -DMODEL=F_02_getImageData_mex -DHAVESTDIO -DUSE_RTMODEL -DUNIX -c 
+
+ldflags =  -pthread -Wl,--no-undefined -Wl,-rpath-link,$matlabdir/bin/glnxa64 -shared  -L"$matlabdir/bin/glnxa64" -lmx -lmex -lmat -lm -lstdc++  -o F_02_getImageData_mex.mexa64 -L"$matlabdir/bin/glnxa64" -lmwimterp2d -lmwblas -lmwippreconstruct -lmwipp -lmwbwlookup_tbb -lmwrgb2gray_tbb -lemlrt -lcovrt -lut -lmwmathutil  "$matlabdir/bin/glnxa64/libmwjpegreader.so" "$matlabdir/bin/glnxa64/libmwdisparitySGM.so" -Wl,--version-script,F_02_getImageData_mex.map
+
+# Build Rules
+rule cc
+    command = $cc $cflags $in -o $out
+
+rule cxx
+    command = $cxx $cxxflags $in -o $out
+
+rule link
+    command = $linker $in $ldflags
+
+rule linkxx
+    command = $linkerxx $in $ldflags
+
+# Build
+build $builddir/rt_nonfinite.o : cc $root/rt_nonfinite.c
+build $builddir/F_02_getImageData_mexutil.o : cc $root/F_02_getImageData_mexutil.c
+build $builddir/F_02_getImageData_data.o : cc $root/F_02_getImageData_data.c
+build $builddir/F_02_getImageData_initialize.o : cc $root/F_02_getImageData_initialize.c
+build $builddir/F_02_getImageData_terminate.o : cc $root/F_02_getImageData_terminate.c
+build $builddir/F_02_getImageData.o : cc $root/F_02_getImageData.c
+build $builddir/StereoParametersImpl.o : cc $root/StereoParametersImpl.c
+build $builddir/floor.o : cc $root/floor.c
+build $builddir/assertValidSizeArg.o : cc $root/assertValidSizeArg.c
+build $builddir/eml_int_forloop_overflow_check.o : cc $root/eml_int_forloop_overflow_check.c
+build $builddir/validateattributes.o : cc $root/validateattributes.c
+build $builddir/det.o : cc $root/det.c
+build $builddir/colon.o : cc $root/colon.c
+build $builddir/abs.o : cc $root/abs.c
+build $builddir/xswap.o : cc $root/xswap.c
+build $builddir/ImageTransformer.o : cc $root/ImageTransformer.c
+build $builddir/strcmp.o : cc $root/strcmp.c
+build $builddir/CameraParametersImpl.o : cc $root/CameraParametersImpl.c
+build $builddir/imread.o : cc $root/imread.c
+build $builddir/warning.o : cc $root/warning.c
+build $builddir/undistortImage.o : cc $root/undistortImage.c
+build $builddir/checkImageSize.o : cc $root/checkImageSize.c
+build $builddir/meshgrid.o : cc $root/meshgrid.c
+build $builddir/distortPoints.o : cc $root/distortPoints.c
+build $builddir/bsxfun.o : cc $root/bsxfun.c
+build $builddir/power.o : cc $root/power.c
+build $builddir/reshapeSizeChecks.o : cc $root/reshapeSizeChecks.c
+build $builddir/interp2d.o : cc $root/interp2d.c
+build $builddir/rectifyStereoImages.o : cc $root/rectifyStereoImages.c
+build $builddir/repmat.o : cc $root/repmat.c
+build $builddir/rodriguesMatrixToVector.o : cc $root/rodriguesMatrixToVector.c
+build $builddir/xzsvdc.o : cc $root/xzsvdc.c
+build $builddir/xnrm2.o : cc $root/xnrm2.c
+build $builddir/sqrt.o : cc $root/sqrt.c
+build $builddir/xscal.o : cc $root/xscal.c
+build $builddir/xdotc.o : cc $root/xdotc.c
+build $builddir/xaxpy.o : cc $root/xaxpy.c
+build $builddir/xrotg.o : cc $root/xrotg.c
+build $builddir/xrot.o : cc $root/xrot.c
+build $builddir/mtimes.o : cc $root/mtimes.c
+build $builddir/rodriguesVectorToMatrix.o : cc $root/rodriguesVectorToMatrix.c
+build $builddir/dot.o : cc $root/dot.c
+build $builddir/mrdivide_helper.o : cc $root/mrdivide_helper.c
+build $builddir/ceil.o : cc $root/ceil.c
+build $builddir/sub2ind.o : cc $root/sub2ind.c
+build $builddir/sum.o : cc $root/sum.c
+build $builddir/bwtraceboundary.o : cc $root/bwtraceboundary.c
+build $builddir/padarray.o : cc $root/padarray.c
+build $builddir/sort.o : cc $root/sort.c
+build $builddir/sortIdx.o : cc $root/sortIdx.c
+build $builddir/regionprops.o : cc $root/regionprops.c
+build $builddir/bwconncomp.o : cc $root/bwconncomp.c
+build $builddir/inv.o : cc $root/inv.c
+build $builddir/scalexpCompatible.o : cc $root/scalexpCompatible.c
+build $builddir/rgb2gray.o : cc $root/rgb2gray.c
+build $builddir/disparitySGM.o : cc $root/disparitySGM.c
+build $builddir/sprintf.o : cc $root/sprintf.c
+build $builddir/reconstructScene.o : cc $root/reconstructScene.c
+build $builddir/cat.o : cc $root/cat.c
+build $builddir/imref2d.o : cc $root/imref2d.c
+build $builddir/imwarp.o : cc $root/imwarp.c
+build $builddir/_coder_F_02_getImageData_api.o : cc $root/interface/_coder_F_02_getImageData_api.c
+build $builddir/_coder_F_02_getImageData_mex.o : cc $root/interface/_coder_F_02_getImageData_mex.c
+build $builddir/F_02_getImageData_emxutil.o : cc $root/F_02_getImageData_emxutil.c
+build $builddir/_coder_F_02_getImageData_info.o : cc $root/interface/_coder_F_02_getImageData_info.c
+build $builddir/c_mexapi_version.o : cc $matlabdir/extern/version/c_mexapi_version.c
+
+# Link
+build $root/F_02_getImageData_mex.mexa64 : link $builddir/rt_nonfinite.o $builddir/F_02_getImageData_mexutil.o $builddir/F_02_getImageData_data.o $builddir/F_02_getImageData_initialize.o $builddir/F_02_getImageData_terminate.o $builddir/F_02_getImageData.o $builddir/StereoParametersImpl.o $builddir/floor.o $builddir/assertValidSizeArg.o $builddir/eml_int_forloop_overflow_check.o $builddir/validateattributes.o $builddir/det.o $builddir/colon.o $builddir/abs.o $builddir/xswap.o $builddir/ImageTransformer.o $builddir/strcmp.o $builddir/CameraParametersImpl.o $builddir/imread.o $builddir/warning.o $builddir/undistortImage.o $builddir/checkImageSize.o $builddir/meshgrid.o $builddir/distortPoints.o $builddir/bsxfun.o $builddir/power.o $builddir/reshapeSizeChecks.o $builddir/interp2d.o $builddir/rectifyStereoImages.o $builddir/repmat.o $builddir/rodriguesMatrixToVector.o $builddir/xzsvdc.o $builddir/xnrm2.o $builddir/sqrt.o $builddir/xscal.o $builddir/xdotc.o $builddir/xaxpy.o $builddir/xrotg.o $builddir/xrot.o $builddir/mtimes.o $builddir/rodriguesVectorToMatrix.o $builddir/dot.o $builddir/mrdivide_helper.o $builddir/ceil.o $builddir/sub2ind.o $builddir/sum.o $builddir/bwtraceboundary.o $builddir/padarray.o $builddir/sort.o $builddir/sortIdx.o $builddir/regionprops.o $builddir/bwconncomp.o $builddir/inv.o $builddir/scalexpCompatible.o $builddir/rgb2gray.o $builddir/disparitySGM.o $builddir/sprintf.o $builddir/reconstructScene.o $builddir/cat.o $builddir/imref2d.o $builddir/imwarp.o $builddir/_coder_F_02_getImageData_api.o $builddir/_coder_F_02_getImageData_mex.o $builddir/F_02_getImageData_emxutil.o $builddir/_coder_F_02_getImageData_info.o $builddir/c_mexapi_version.o 

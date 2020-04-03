@@ -18,7 +18,8 @@
 % For the thermal camera calibration utdset4 is used
 
 % Define images to process
-imageFileNames = {'/media/teamlary/Team_Lary_1/gitGubRepos/Lakitha/stereoVisionCalibration/firmware/MATLAB/threeWayImageDataSets/utdSet4/thermalCalib/040_11_05_17_56_13_thermal.jpg',...
+imageFileNames = {...
+    '/media/teamlary/Team_Lary_1/gitGubRepos/Lakitha/stereoVisionCalibration/firmware/MATLAB/threeWayImageDataSets/utdSet4/thermalCalib/040_11_05_17_56_13_thermal.jpg',...
     '/media/teamlary/Team_Lary_1/gitGubRepos/Lakitha/stereoVisionCalibration/firmware/MATLAB/threeWayImageDataSets/utdSet4/thermalCalib/040_11_05_17_56_20_thermal.jpg',...
     '/media/teamlary/Team_Lary_1/gitGubRepos/Lakitha/stereoVisionCalibration/firmware/MATLAB/threeWayImageDataSets/utdSet4/thermalCalib/040_11_05_17_56_27_thermal.jpg',...
     '/media/teamlary/Team_Lary_1/gitGubRepos/Lakitha/stereoVisionCalibration/firmware/MATLAB/threeWayImageDataSets/utdSet4/thermalCalib/040_11_05_17_57_53_thermal.jpg',...
@@ -48,52 +49,40 @@ imageFileNames = {'/media/teamlary/Team_Lary_1/gitGubRepos/Lakitha/stereoVisionC
     '/media/teamlary/Team_Lary_1/gitGubRepos/Lakitha/stereoVisionCalibration/firmware/MATLAB/threeWayImageDataSets/utdSet4/thermalCalib/150_11_05_18_03_23_thermal.jpg',...
     };
 
-
 % Detect checkerboards in images
-[imagePoints, boardSize, imagesUsed] = detectCheckerboardPoints(imageFileNames1, imageFileNames2);
+[imagePoints, boardSize, imagesUsed] = detectCheckerboardPoints(imageFileNames);
+imageFileNames = imageFileNames(imagesUsed);
 
+% Read the first image to obtain image size
+originalImage = imread(imageFileNames{1});
+[mrows, ncols, ~] = size(originalImage);
 
-% Generate world coordinates of the checkerboard keypoints
+% Generate world coordinates of the corners of the squares
 squareSize = 35;  % in units of 'millimeters'
 worldPoints = generateCheckerboardPoints(boardSize, squareSize);
 
-% Read one of the images from the first stereo pair
-I1 = imread(imageFileNames1{1});
-[mrows, ncols, ~] = size(I1);
-
 % Calibrate the camera
-[stereoParamsLeftAndRight, pairsUsed, estimationErrors] = estimateCameraParameters(imagePoints, worldPoints, ...
+[thermalParams, imagesUsed, estimationErrors] = estimateCameraParameters(imagePoints, worldPoints, ...
     'EstimateSkew', false, 'EstimateTangentialDistortion', false, ...
     'NumRadialDistortionCoefficients', 2, 'WorldUnits', 'millimeters', ...
     'InitialIntrinsicMatrix', [], 'InitialRadialDistortion', [], ...
     'ImageSize', [mrows, ncols]);
 
-
-
-
-
 % View reprojection errors
-h1=figure; showReprojectionErrors(stereoParamsLeftAndRight);
+h1=figure; showReprojectionErrors(thermalParams);
 
-% Visualize pattern locationsleftAnd
-h2=figure; showExtrinsics(stereoParamsLeftAndRight, 'CameraCentric');
+% Visualize pattern locations
+h2=figure; showExtrinsics(thermalParams, 'CameraCentric');
 
 % Display parameter estimation errors
-displayErrors(estimationErrors, stereoParamsLeftAndRight);
+displayErrors(estimationErrors, thermalParams);
 
-% You can use the calibration data to rectify stereo images.
-I2 = imread(imageFileNames2{1});
-[J1, J2] = rectifyStereoImages(I1, I2, stereoParamsLeftAndRight);
+% For example, you can use the calibration data to remove effects of lens distortion.
+undistortedImage = undistortImage(originalImage, thermalParams);
 
-% Saving Data Products 
-leftImagePoints= imagePoints(:,:,:,1);
-rightImagePoints= imagePoints(:,:,:,2);
-
-save('../dataProducts/leftAndRightCalibrationNov06th')
-save('../dataProducts/leftAndRightParametorsNov06th','stereoParamsLeftAndRight')
-save('../dataProducts/pythonLeftAndRightFeb10',...
-        'imageFileNames1','imageFileNames2',...
-        'imagePoints','leftImagePoints','rightImagePoints'...
-        )
-% close all
-
+% See additional examples of how to use the calibration data.  At the prompt type:
+% showdemo('MeasuringPlanarObjectsExample')
+% showdemo('StructureFromMotionExample')
+save('../dataProducts/thermalCalibrationNov06th')
+save('../dataProducts/thermalParametorsNov06th','thermalParams')
+close all

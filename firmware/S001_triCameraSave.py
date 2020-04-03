@@ -40,7 +40,7 @@ cr.printMINTS("fevSen")
 cr.printLabel("Logging Inputs")
 
 highResolution = True
-imageSave      = True 
+imageSave      = True
 display        = True
 
 directory = "/home/teamlary/mintsData/jetson001/"
@@ -55,7 +55,7 @@ if not highResolution:
     frameRate = 30
 
 cr.printLabel("Assigning Queues:")
-qThermal  = Queue(maxsize = 5) 
+qThermal  = Queue(maxsize = 5)
 
 print("High Resolution: {}, Image Saving: {}, Display: {}".format(highResolution,imageSave,display))
 
@@ -157,10 +157,10 @@ def main():
                     retLeft, frameLeft     = capLeft.read()
                     retRight,frameRight    = capRight.read()
                     if not retLeft:
-                        print('Empty Left frame')                   
+                        print('Empty Left frame')
                     if not retRight:
                         print('Empty Right frame')
-                    
+
                 cr.printLabel("Entering While Loop")
                 while True:
                     dateTime          = datetime.datetime.now()
@@ -169,7 +169,7 @@ def main():
                     retRight,right    = capRight.read()
 
                     if not retLeft:
-                        print('Empty Left frame')                   
+                        print('Empty Left frame')
                     if not retRight:
                         print('Empty Right frame')
 
@@ -178,7 +178,7 @@ def main():
                     if(qThermal.full()):
                         print(dateTime)
                         thermal = qThermal.get()
-                        if(imageSave):                    
+                        if(imageSave):
                             leftImageName      = directory + cr.getImagePathTail(dateTime,'left')
                             rightImageName     = directory + cr.getImagePathTail(dateTime,'right')
                             thermalImageName   = directory + cr.getImagePathTail(dateTime,'thermal')
@@ -194,17 +194,17 @@ def main():
                     else:
                         print("Thermal Queue not full")
                         print("Thermal Queue Size: {}".format(qThermal.qsize()))
-                    # 
+                    #
 
 
 
                     if cv2.waitKey(1)&0xFF == ord('q'):
                         break
-            
+
             finally:
                 libuvc.uvc_stop_streaming(devh)
 
-            
+
             capLeft.release()
             capRight.release()
             cv2.destroyAllWindows()

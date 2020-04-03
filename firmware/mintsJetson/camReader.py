@@ -21,7 +21,9 @@ import cv2
 import os
 import numpy as np
 from imutils.video import WebcamVideoStream
+import imutils
 import math
+from scipy.io import loadmat
 # def py_frame_callback(frame, userptr):
 
 #   array_pointer = cast(frame.contents.data, POINTER(c_uint16 * (frame.contents.width * frame.contents.height)))
@@ -269,7 +271,64 @@ def mat2PyGetImageCornersStereo(leftImagePoints,rightImagePoints,objp,\
                                            rightImageCorners[imageIndex][cornerIndex]
     return leftCornersArranged,rightCornersArranged, objPoints;
 
-print("Organizing File Names")
+
+
+
+def mat2PyGetImageCornersStereoScaled(leftImagePoints,rightImagePoints,\
+                                    horizontalInnerCorners,verticalInnerCorners,\
+                                    scaleFactor):
+    objp        = np.zeros((horizontalInnerCorners*verticalInnerCorners, 3), np.float32)
+    objp[:, :2] = np.mgrid[0:horizontalInnerCorners, 0:verticalInnerCorners].T.reshape(-1, 2)
+
+    printLabel("Reading Corner Points from Stereo Visual Cameras")
+    objPoints         = []  # 3d point in real world space
+    leftImageCorners  = []
+    rightImageCorners = []
+    leftFileNames     =  []
+    rightFileNames    = []
+
+    for imageIndex in range(len(leftImagePoints[0][0])):
+       leftImageCurrentCorners  = []
+       rightImageCurrentCorners = []
+       objPoints.append(objp)
+
+       for cornerIndex in range(len(leftImagePoints)):
+
+           leftXCordCurrent= np.float32(leftImagePoints[cornerIndex][0][imageIndex])
+           leftYCordCurrent= np.float32(leftImagePoints[cornerIndex][1][imageIndex])
+           leftImageCurrentCorners.append([[leftXCordCurrent,leftYCordCurrent]])
+
+           rightXCordCurrent = np.float32(rightImagePoints[cornerIndex][0][imageIndex])
+           rightYCordCurrent = np.float32(rightImagePoints[cornerIndex][1][imageIndex])
+           rightImageCurrentCorners.append([[rightXCordCurrent,rightYCordCurrent]])
+
+       leftImageCorners.append(leftImageCurrentCorners)
+       rightImageCorners.append(rightImageCurrentCorners)
+
+    leftCorners = np.array(leftImageCorners)
+    rightCorners = np.array(rightImageCorners)
+
+
+    printLabel("Rearranging Corners of Stereo Cameras to Suit Python Deployments")
+    leftCornersArranged  = leftCorners
+    rightCornersArranged = rightCorners
+
+    for imageIndex in range(len(leftImagePoints[0][0])):
+       currentLeftCornerPoints = leftCorners[imageIndex]
+       for cornerIndex in range(len(leftImagePoints)):
+           arrangedIndex = horizontalInnerCorners*((cornerIndex)%verticalInnerCorners)\
+                               + math.floor(cornerIndex/verticalInnerCorners)
+           leftCornersArranged[imageIndex][arrangedIndex]  = \
+                                           leftImageCorners[imageIndex][cornerIndex]
+           rightCornersArranged[imageIndex][arrangedIndex] = \
+                                           rightImageCorners[imageIndex][cornerIndex]
+
+
+    print("Scaling to Match Higher Resolution")
+    return leftCornersArranged*scaleFactor,rightCornersArranged*scaleFactor, objPoints;
+
+
+
 def mat2PyGetStereoFileNames(imageFileNamesLeft,imageFileNamesRight):
     leftFileNames  =  []
     rightFileNames  =  []
@@ -280,9 +339,132 @@ def mat2PyGetStereoFileNames(imageFileNamesLeft,imageFileNamesRight):
     return leftFileNames,rightFileNames;
 
 
+
+def replaceNames(imageFileNames,replace,replaceWith):
+    fileNames  =  []
+
+    for fileName in imageFileNames:
+       fileNames.append(fileName.replace(replace,replaceWith))
+
+    return fileNames;
+
+
+
+def mat2PyGetStereoMapping(horizontalSquares,verticalSquares,fileName,display,displayTime):
+    horizontalInnerCorners = horizontalSquares-1
+    verticalInnerCorners   = verticalSquares-1
+
+    printLabel("Loading Stereo Vision Parametors From Matlab")
+    leftAndRightParametors = loadmat(fileName)
+    allImagePoints         = leftAndRightParametors['imagePoints']
+    leftImagePoints        = leftAndRightParametors['leftImagePoints']
+    rightImagePoints       = leftAndRightParametors['rightImagePoints']
+    imageFileNamesLeft     = leftAndRightParametors['imageFileNames1']
+    imageFileNamesRight    = leftAndRightParametors['imageFileNames2']
+
+
+
+
+    printLabel("Defining 3D Object Points")
+    objp        = np.zeros((horizontalInnerCorners*verticalInnerCorners, 3), np.float32)
+    objp[:, :2] = np.mgrid[0:horizontalInnerCorners, 0:verticalInnerCorners].T.reshape(-1, 2)
+
+    # Arrays to store object points and image points from all the images.
+    printLabel("Defining World Points and Image Points")
+    objPoints      = []  # 3d point in real world space
+
+
+    printLabel("Gaining Corner Points from the Matlab Deployment")
+    leftCorners,rightCorners, objPoints = mat2PyGetImageCornersStereo(\
+                                                            leftImagePoints,\
+                                                            rightImagePoints,\
+                                                            objp,\
+                                                            horizontalInnerCorners,\
+                                                            verticalInnerCorners\
+                                                            )
+
+
+    printLabel("Gaining Stereo File Names from the Matlab Deployment")
+    leftFileNames,rightFileNames = mat2PyGetStereoFileNames(imageFileNamesLeft,imageFileNamesRight)
+
+
+    printLabel("Verification of Stereo Corners")
+    displayCornerPointsStereo(leftCorners,rightCorners,leftFileNames,rightFileNames,\
+                                            horizontalInnerCorners,verticalInnerCorners,\
+                                            display,displayTime)
+
+    printLabel("Gaining Image Size")
+    imgSize = getImageSize(leftFileNames[0])
+
+    printLabel("Calibrating Individual Cameras")
+    retLeft, mtxLeft, distLeft, rvecsLeft, tvecsLeft      = cv2.calibrateCamera(\
+                                                           objPoints, leftCorners, imgSize, None, None)
+    print("Left Camera Calibrated")
+    retRight, mtxRight, distRight, rvecsRight, tvecsRight = cv2.calibrateCamera(\
+                                                           objPoints, rightCorners, imgSize, None, None)
+    print("Right Camera Calibrated")
+
+
+    printLabel("Calibrating Stereo Cameras")
+    flags = 0
+    flags |= cv2.CALIB_FIX_INTRINSIC
+    # flags |= cv2.CALIB_FIX_PRINCIPAL_POINT
+    flags |= cv2.CALIB_USE_INTRINSIC_GUESS
+    flags |= cv2.CALIB_FIX_FOCAL_LENGTH
+    # flags |= cv2.CALIB_FIX_ASPECT_RATIO
+    flags |= cv2.CALIB_ZERO_TANGENT_DIST
+    # flags |= cv2.CALIB_RATIONAL_MODEL
+    # flags |= cv2.CALIB_SAME_FOCAL_LENGTH
+    # flags |= cv2.CALIB_FIX_K3
+    # flags |= cv2.CALIB_FIX_K4
+    # flags |= cv2.CALIB_FIX_K5
+
+    stereocalib_criteria = (cv2.TERM_CRITERIA_MAX_ITER +
+                                    cv2.TERM_CRITERIA_EPS, 100, 1e-5)
+    ret, M1, d1, M2, d2, R, T, E, F = cv2.stereoCalibrate(
+                                            objPoints, \
+                                            leftCorners,rightCorners,\
+                                            mtxLeft, distLeft, \
+                                            mtxLeft, distLeft, \
+                                            imgSize,\
+                                            criteria=stereocalib_criteria, flags=flags)
+
+    printLabel("Starting Stereo Calibration ")
+    R1, R2, P1, P2, Q, _, _        = cv2.stereoRectify(\
+                                         mtxLeft, distLeft, \
+                                            mtxLeft, distLeft, \
+                                                imgSize,\
+                                                    R,\
+                                                        T, \
+                                                            alpha=1)
+
+    print("Stereo Calibration done")
+
+    printLabel("Gaining Stereo Mapping")
+    mapXLeft, mapYLeft = cv2.initUndistortRectifyMap(mtxLeft, \
+                                                distLeft,\
+                                                R1,\
+                                                P1,\
+                                                imgSize,
+                                                cv2.CV_32F)
+    mapXRight, mapYRight = cv2.initUndistortRectifyMap(mtxLeft, \
+                                                distLeft,\
+                                                R2,\
+                                                P2,\
+                                                imgSize,
+                                                cv2.CV_32F)
+
+    return leftFileNames,rightFileNames,mapXLeft,mapYLeft,mapXRight, mapYRight,\
+                M1, d1, M2, d2, R1, R2, P1, P2, R, T, E, F, Q ;
+
+
+
+
+
+
 def displayCornerPointsStereo(leftCorners,rightCorners,leftFileNames,rightFileNames,\
                                             horizontalInnerCorners,verticalInnerCorners,
-                                                delayTimeMillis):
+                                                display,delayTimeMillis):
     subpix_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.01)
 
     for leftCornersCurrent,leftFileNamesCurrent,rightCornersCurrent,rightFileNamesCurrent in \
@@ -297,15 +479,317 @@ def displayCornerPointsStereo(leftCorners,rightCorners,leftFileNames,rightFileNa
        cv2.cornerSubPix(grayLeft, leftCornersCurrent, (3, 3), (-1, -1), subpix_criteria)
        cv2.drawChessboardCorners(imgLeft, (horizontalInnerCorners,verticalInnerCorners),\
                leftCornersCurrent, True)
-       cv2.imshow("Left", imgLeft)
+
 
        cv2.cornerSubPix(grayRight, rightCornersCurrent, (3, 3), (-1, -1), subpix_criteria)
        cv2.drawChessboardCorners(imgRight, (horizontalInnerCorners,verticalInnerCorners),\
                rightCornersCurrent, True)
-       cv2.imshow("Right", imgRight)
+       if(display):
+           cv2.imshow("Left", imgLeft)
+           cv2.imshow("Right", imgRight)
+           cv2.waitKey(delayTimeMillis)
+
+    cv2.destroyAllWindows()
+
+
+def displayCornerPointsStereoScaled(leftCorners,rightCorners,leftFileNames,rightFileNames,\
+                                            horizontalInnerCorners,verticalInnerCorners,
+                                                delayTimeMillis,widthIn):
+    subpix_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.01)
+
+    for leftCornersCurrent,leftFileNamesCurrent,rightCornersCurrent,rightFileNamesCurrent in \
+                   zip(leftCorners,leftFileNames,rightCorners,rightFileNames):
+
+       imgLeft  = cv2.imread(leftFileNamesCurrent)
+       imgRight = cv2.imread(rightFileNamesCurrent)
+
+       grayLeft   = cv2.cvtColor(imgLeft, cv2.COLOR_BGR2GRAY)
+       grayRight   = cv2.cvtColor(imgRight, cv2.COLOR_BGR2GRAY)
+
+       cv2.cornerSubPix(grayLeft, leftCornersCurrent, (3, 3), (-1, -1), subpix_criteria)
+       cv2.drawChessboardCorners(imgLeft, (horizontalInnerCorners,verticalInnerCorners),\
+               leftCornersCurrent, True)
+
+       cv2.cornerSubPix(grayRight, rightCornersCurrent, (3, 3), (-1, -1), subpix_criteria)
+       cv2.drawChessboardCorners(imgRight, (horizontalInnerCorners,verticalInnerCorners),\
+                      rightCornersCurrent, True)
+
+       cv2.imshow("Left", imutils.resize(imgLeft, width=widthIn))
+       cv2.imshow("Right", imutils.resize(imgLeft, width=widthIn))
        cv2.waitKey(delayTimeMillis)
 
     cv2.destroyAllWindows()
+
+
+
+def getImageSize(fileName):
+    print("Gaining Image Size for '{}'".format(fileName))
+    img  = cv2.imread(fileName)
+    print("Image Width: {}, Image Height: {}".format(img.shape[1], img.shape[0]))
+    return (img.shape[1], img.shape[0]);
+
+
+
+
+def getStereoRectificationMaps(leftCorners,rightCorners,objPoints,imgSize):
+
+    printLabel("Left Camera Calibrating")
+    retLeft, mtxLeft, distLeft, rvecsLeft, tvecsLeft      = cv2.calibrateCamera(\
+                                                           objPoints, leftCorners, imgSize, None, None)
+    print("Left Camera Calibrated")
+
+    printLabel("Right Camera Calibrating")
+    retRight, mtxRight, distRight, rvecsRight, tvecsRight = cv2.calibrateCamera(\
+                                                           objPoints, rightCorners, imgSize, None, None)
+    print("Right Camera Calibrated")
+
+    printLabel("Starting Stereo Calibration")
+
+    flags = 0
+    flags |= cv2.CALIB_FIX_INTRINSIC
+    # flags |= cv2.CALIB_FIX_PRINCIPAL_POINT
+    flags |= cv2.CALIB_USE_INTRINSIC_GUESS
+    flags |= cv2.CALIB_FIX_FOCAL_LENGTH
+    # flags |= cv2.CALIB_FIX_ASPECT_RATIO
+    flags |= cv2.CALIB_ZERO_TANGENT_DIST
+    # flags |= cv2.CALIB_RATIONAL_MODEL
+    # flags |= cv2.CALIB_SAME_FOCAL_LENGTH
+    # flags |= cv2.CALIB_FIX_K3
+    # flags |= cv2.CALIB_FIX_K4
+    # flags |= cv2.CALIB_FIX_K5
+
+    stereocalib_criteria = (cv2.TERM_CRITERIA_MAX_ITER +
+                                    cv2.TERM_CRITERIA_EPS, 100, 1e-5)
+    ret, M1, d1, M2, d2, R, T, E, F = cv2.stereoCalibrate(
+                                            objPoints, \
+                                            leftCorners,rightCorners,\
+                                            mtxLeft, distLeft, \
+                                            mtxLeft, distLeft, \
+                                            imgSize,\
+                                            criteria=stereocalib_criteria, flags=flags)
+
+    print("Stereo Calibration Done")
+
+    printLabel("Gaining Rectification Parametors")
+    R1, R2, P1, P2, Q, _, _        = cv2.stereoRectify(\
+                                         mtxLeft, distLeft, \
+                                            mtxLeft, distLeft, \
+                                                imgSize,\
+                                                    R,\
+                                                        T, \
+                                                            alpha=1)
+
+
+    printLabel("Gaining Stereo Maps")
+    mapXLeft, mapYLeft = cv2.initUndistortRectifyMap(mtxLeft, \
+                                                distLeft,\
+                                                R1,\
+                                                P1,\
+                                                imgSize,
+                                                cv2.CV_32F)
+    mapXRight, mapYRight = cv2.initUndistortRectifyMap(mtxLeft, \
+                                                distLeft,\
+                                                R2,\
+                                                P2,\
+                                                imgSize,
+                                                cv2.CV_32F)
+
+    return mapXLeft,mapYLeft,mapXRight,mapYRight;
+
+def stereoTestMap(leftFile,rightFile,mapXLeft,mapYLeft,mapXRight,mapYRight,displayTime):
+    printLabel("Displaying Test Image Mappings on '{}' and '{}'".format(leftFile,rightFile))
+    imLeft          = cv2.imread(leftFile)
+    imRight         = cv2.imread(rightFile)
+    imLeftRemapped  = cv2.remap(imLeft,mapXLeft,mapYLeft,cv2.INTER_CUBIC)
+    imRightRemapped = cv2.remap(imRight,mapXRight,mapYRight,cv2.INTER_CUBIC)
+
+    cv2.imshow(leftFile+" remapped",imLeftRemapped)
+    cv2.imshow(rightFile+" remapped",imRightRemapped)
+    cv2.waitKey(displayTime)
+    cv2.destroyAllWindows()
+    return imLeftRemapped,imRightRemapped;
+
+
+def getReverseMapping(mapX, mapY):
+    assert(mapX.shape == mapY.shape)
+    rows = mapX.shape[0]
+    cols = mapX.shape[1]
+    mX = np.ones(mapX.shape, dtype=mapX.dtype) * -1
+    mY = np.ones(mapY.shape, dtype=mapY.dtype) * -1
+    for i in range(rows):
+        for j in range(cols):
+
+            i_ = round(mapY[i, j])
+            j_ = round(mapX[i, j])
+
+            if 0 <= i_ < rows and 0 <= j_ < cols:
+                mX[int(i_), int(j_)] = j
+                mY[int(i_), int(j_)] = i
+    return mX, mY
+
+def stereoReverseTestMap(imLeftRemapped,imRightRemapped,\
+                            mapXLeftReverse,mapYLeftReverse,\
+                                mapXRightReverse,mapYRightReverse,\
+                            displayTime):
+    imLeftRemappedReverse  = cv2.remap(imLeftRemapped,mapXLeftReverse,mapYLeftReverse,cv2.INTER_CUBIC)
+    imRightRemappedReverse = cv2.remap(imRightRemapped,mapXRightReverse,mapYRightReverse,cv2.INTER_CUBIC)
+
+    cv2.imshow("Left Image Reversed"  ,imLeftRemappedReverse)
+    cv2.imshow("Right Image Reversed" ,imRightRemappedReverse)
+    cv2.waitKey(displayTime)
+    cv2.destroyAllWindows()
+
+# Thermal Camera Calibration
+def mat2PyGetImageCornersThermal(thermalImagePoints,\
+                                        horizontalInnerCorners,\
+                                            verticalInnerCorners):
+
+    printLabel("Reading Corner Points from Stereo Visualthe Thermal Camera")
+
+    objp        = np.zeros((horizontalInnerCorners*verticalInnerCorners, 3), np.float32)
+    objp[:, :2] = np.mgrid[0:horizontalInnerCorners, 0:verticalInnerCorners].T.reshape(-1, 2)
+
+
+    objPoints         = []  # 3D point in real world space
+    imgPointsthermal  = []  # 2D points in image plane.
+
+    # Organizing Corner Points
+    thermalImageCorners  = []
+
+    for imageIndex in range(len(thermalImagePoints[0][0])):
+        thermalImageCurrentCorners  = []
+        objPoints.append(objp)
+
+        for cornerIndex in range(len(thermalImagePoints)):
+
+            thermalXCordCurrent= np.float32(thermalImagePoints[cornerIndex][0][imageIndex])
+            thermalYCordCurrent= np.float32(thermalImagePoints[cornerIndex][1][imageIndex])
+            thermalImageCurrentCorners.append([[thermalXCordCurrent,thermalYCordCurrent]])
+
+        thermalImageCorners.append(thermalImageCurrentCorners)
+
+    thermalCorners = np.array(thermalImageCorners)
+
+    print("Rearanging Corners")
+    thermalCornersArranged  = thermalCorners
+
+    for imageIndex in range(len(thermalImagePoints[0][0])):
+
+        for cornerIndex in range(len(thermalImagePoints)):
+
+            arrangedIndex = horizontalInnerCorners*((cornerIndex)%verticalInnerCorners)\
+                                + math.floor(cornerIndex/verticalInnerCorners)
+
+            thermalCornersArranged[imageIndex][arrangedIndex]  = \
+                                            thermalImageCorners[imageIndex][cornerIndex]
+
+    return thermalCornersArranged,objPoints;
+
+
+
+def mat2PyGetThermalFileNames(imageFileNames):
+    fileNames  =  []
+    for imageFileName in imageFileNames[0]:
+        fileNames.append(imageFileName[0])
+    return fileNames;
+
+
+def displayCornerPointsThermal(thermalCorners,thermalFileNames,\
+                                            horizontalInnerCorners,verticalInnerCorners,
+                                                display,displayTime):
+    subpix_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.01)
+
+    for thermalCornersCurrent,thermalFileNamesCurrent in \
+            zip(thermalCorners,thermalFileNames):
+
+        imgthermal    = cv2.imread(thermalFileNamesCurrent)
+        graythermal   = cv2.cvtColor(imgthermal, cv2.COLOR_BGR2GRAY)
+
+        cv2.cornerSubPix(graythermal, thermalCornersCurrent, (3, 3), (-1, -1), subpix_criteria)
+        cv2.drawChessboardCorners(imgthermal, (horizontalInnerCorners,verticalInnerCorners),\
+                    thermalCornersCurrent, True)
+        if(display):
+            cv2.imshow("Thermal", imgthermal)
+            cv2.waitKey(displayTime)
+
+    cv2.destroyAllWindows()
+
+
+
+
+
+
+
+def mat2PyGetThermalMapping(horizontalSquares,\
+                                    verticalSquares,\
+                                        loadName,\
+                                            display,delayTimeMillis):
+
+    horizontalInnerCorners = horizontalSquares-1
+    verticalInnerCorners   = verticalSquares-1
+
+    thermalParametors = loadmat(loadName)
+
+    printLabel("Loading Thermal Parametors From Matlab")
+
+    thermalImagePoints        = thermalParametors['imagePoints']
+    imageFileNamesThermal     = thermalParametors['imageFileNames']
+
+
+    # Arrays to store object points and image points from all the images.
+    # Organizing the file names
+    printLabel("Gaining Corner Points from the Matlab Deployment")
+    thermalCorners,objPoints =  mat2PyGetImageCornersThermal(thermalImagePoints,\
+                                            horizontalInnerCorners,\
+                                                verticalInnerCorners)
+
+
+
+    printLabel("Gaining Thermal File Names from the Matlab Deployment")
+    thermalFileNames = mat2PyGetThermalFileNames(imageFileNamesThermal)
+
+
+    # Verification of Corner Points
+    print("Verification of Thermal Corner Points")
+    displayCornerPointsThermal(thermalCorners,thermalFileNames,\
+                                                horizontalInnerCorners,verticalInnerCorners,
+                                                    display,delayTimeMillis)
+
+    printLabel("Gaining Image Size")
+    imgSize = getImageSize(thermalFileNames[0])
+
+
+    printLabel("Calibrating Thermal Camera")
+    retThermal, mtxThermal, distThermal, rvecsThermal, tvecsThermal  = cv2.calibrateCamera(\
+                                                            objPoints, thermalCorners, imgSize, None, None)
+    print("Thermal Camera Calibrated")
+
+    printLabel("Optimizing Thermal Camera Matrix")
+    newCameraMtx, _    = cv2.getOptimalNewCameraMatrix(mtxThermal,distThermal, imgSize, 1)
+
+    imThermal          = cv2.imread(thermalFileNames[0])
+    newcameramtx, _    = cv2.getOptimalNewCameraMatrix(mtxThermal,distThermal, imgSize, 1)
+    undistortedThermal = cv2.undistort(imThermal , mtxThermal,distThermal, None, newcameramtx)
+
+
+    return thermalFileNames, thermalCorners,\
+                mtxThermal, distThermal, rvecsThermal, tvecsThermal, \
+                    newCameraMtx;
+
+
+def thermalTestUndistort(imageFile,mtxThermal,distThermal,newcameramtx,displayTime):
+    printLabel("Displaying Undistorted Image for '{}'".format(imageFile))
+    imThermal          = cv2.imread(imageFile)
+    undistortedThermal = cv2.undistort(imThermal, mtxThermal,distThermal, None, newcameramtx)
+    cv2.imshow(imageFile+ " Original",imThermal)
+    cv2.imshow(imageFile+ " Undistorted",undistortedThermal)
+    cv2.waitKey(displayTime)
+    cv2.destroyAllWindows()
+
+
+
+
+
 
 
 

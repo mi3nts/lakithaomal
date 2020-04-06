@@ -38,39 +38,47 @@ imageFileNamesRight    = leftAndRightParametors['imageFileNames2']
 cr.printLabel("Gaining Stereo File Names from the Matlab Deployment")
 leftFileNames,rightFileNames = cr.mat2PyGetStereoFileNames(imageFileNamesLeft,imageFileNamesRight)
 
-currentIndex = 2
+distances = np.arange(40, 321, 10).tolist()
 
-distances = [40:10:250]
+
+currentIndex = 27
+
+rawDistances = [1005,925,765,657,572,512,460,418,382,352,\
+                 320,307,289,270,256,240,227,220,208,200,\
+                 192,182,176,167,160,157,147,144,143\
+                ]
+
 # Scripting the real values for distance
 
-# 40cm    = 1005
-# 50cm    = 925
-# 60cm    = 770
-# 70cm    = 600
-# 80cm    = 525
-# 90cm    = 470
-# 100cm   = 420
-# 110cm   = 385
-# 120cm   = 352
-# 130cm   = 320
-# 140cm   = 300
-# 150cm   = 275
-# 160cm   = 260
-# 170cm   = 245
-# 180cm   = 225
-# 190cm   = 218
-# 200cm   = 208
-# 210cm   = 195
-# 220cm   = 180
-# 230cm   = 176
-# 240cm   = 172
-# 250cm   = 160
-# 260cm   = 158
-# 270cm   = 147
-# 280cm   = 143
-# 290cm   = 140
-# 300cm   = 130
-
+#0  40cm    = 1005
+#1  50cm    = 925
+#2  60cm    = 765
+#3  70cm    = 657
+#4  80cm    = 572
+#5  90cm    = 512
+#6  100cm   = 460
+#7  110cm   = 418
+#8  120cm   = 382
+#9  130cm   = 352
+#10 140cm   = 320
+#11 150cm   = 307
+#12 160cm   = 289
+#13 170cm   = 270
+#14 180cm   = 256
+#15 190cm   = 240
+#16 200cm   = 227
+#17 210cm   = 220
+#18 220cm   = 208
+#19 230cm   = 200
+#20 240cm   = 192
+#21 250cm   = 182
+#22 260cm   = 176
+#23 270cm   = 167
+#24 280cm   = 160
+#25 290cm   = 157
+#26 300cm   = 147
+#27 310cm   = 144
+#28 320cm   = 143
 
 leftImage  = cv2.imread(leftFileNames[currentIndex])
 rightImage = cv2.imread(rightFileNames[currentIndex])
@@ -123,13 +131,12 @@ disparityPre     = leftMatcher.compute(frameLeftRect,frameRightRect)
 # b= -0.9453
 #
 # distanceImage  = 30590*(disparityPre**-0.9453)
-#
+
 plt.subplot(221)
 plt.imshow(cv2.cvtColor(frameLeftRect, cv2.COLOR_BGR2RGB))
 plt.subplot(222)
 plt.imshow(cv2.cvtColor(frameRightRect, cv2.COLOR_BGR2RGB))
 plt.subplot(223)
 plt.imshow(disparityPre,cmap='rainbow')
-# plt.subplot(224)
-# plt.imshow(distanceImage)
+plt.suptitle("Distance Image for {} cm".format(distances[currentIndex]))
 plt.show()

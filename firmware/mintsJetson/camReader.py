@@ -788,10 +788,142 @@ def thermalTestUndistort(imageFile,mtxThermal,distThermal,newcameramtx,displayTi
 
 
 
+def saveRectifiedForMatStereo(leftFileNames,rightFileNames,stereoParams):
+    for leftFileNamesCurrent,rightFileNamesCurrent in \
+                   zip(leftFileNames,rightFileNames):
+
+        imLeft  = cv2.imread(leftFileNamesCurrent)
+        imRight = cv2.imread(rightFileNamesCurrent)
+
+        imLeftRemapped =cv2.remap(imLeft,stereoParams['mapXLeft'],\
+                                            stereoParams['mapYLeft'],\
+                                                cv2.INTER_CUBIC)
+
+        imRightRemapped=cv2.remap(imRight,stereoParams['mapXRight'],\
+                                            stereoParams['mapYRight'],
+                                                cv2.INTER_CUBIC)
+
+        newLeft  = leftFileNamesCurrent.replace("Resized", "ResizedRectified")
+        newRight = rightFileNamesCurrent.replace("Resized", "ResizedRectified")
+
+        print("Writing Rectified Left  Image of '{}' as '{}'".format(leftFileNamesCurrent,newRight))
+        cv2.imwrite(newLeft,    imLeftRemapped);
+        print("Writing Rectified Right Image of '{}' as '{}'".format(rightFileNamesCurrent,newRight))
+        cv2.imwrite(newRight,   imRightRemapped);
 
 
+def saveUndistortedForMatThermal(thermalFileNames,thermalParams):
+    for thermalFileNamesCurrent in thermalFileNames:
+
+        imThermal  = cv2.imread(thermalFileNamesCurrent)
+
+        imThermalRemapped = cv2.undistort(\
+                                    imThermal,\
+                                    thermalParams['mtxThermal'],\
+                                    thermalParams['distThermal']
+                                    , None,\
+                                    thermalParams['newcameramtx']\
+                                    )
+
+        newThermal  = thermalFileNamesCurrent.replace("thermal", "thermaUndistorted")
+
+        print("Writing Rectified Thermal  Image of '{}' as '{}'".format(thermalFileNamesCurrent,newThermal))
+        # cv2.imwrite(newThermal,    imThermalRemapped);
 
 
+def getReplacedFileNames(leftFileNames,replace,replaceWith):
+    thermalFileNames = []
+    for leftFileName in leftFileNames:
+        thermalFileNames.append(leftFileName.replace(replace,replaceWith))
+    return thermalFileNames;
+
+def getHomogrpahyParams(cornersLeft,cornersThermal):
+    homographyAll = []
+    for leftCornerNow,thermalCornerNow,homographyIndex in zip (cornersLeft,cornersThermal,range(len(cornersLeft))):
+        homographyAll.append(cv2.findHomography(thermalCornerNow,\
+                                                                    leftCornerNow,\
+                                                                      cv2.RANSAC, 4)[0])
+    return homographyAll;
+
+def displayOverlayImages(fileNamesLeft,fileNamesThermal,\
+                            homographyAll,displayTime):
+
+    for currentImageIndex in range(len(fileNamesLeft)):
+        print("Overlaying {} on {}".format(fileNamesThermal[currentImageIndex],\
+                                                fileNamesLeft[currentImageIndex]))
+        imLeft    = cv2.imread(fileNamesLeft[currentImageIndex])
+        imThermal = cv2.imread(fileNamesThermal[currentImageIndex])
+        rows,cols,ch = imLeft.shape
+        thermalOverlay   = cv2.warpPerspective(imThermal,\
+                                homographyAll[currentImageIndex],(cols,rows))
+        alpha = 0.2
+        beta = (1.0 - alpha)
+
+        mergedHomographyLocal = cv2.addWeighted(imLeft,alpha,thermalOverlay, beta, 0.0)
+        cv2.imshow("Left" ,imLeft )
+        cv2.imshow("Thermal" ,imThermal)
+        cv2.imshow("Homography" , mergedHomographyLocal)
+        cv2.waitKey(displayTime)
+    cv2.destroyAllWindows()
+
+def getDistanceParamsMat2Py(loadName2,numOfHomographies):
+    distanceParamsMat            = loadmat(loadName2)
+    fitA                         = distanceParamsMat['a'][0][0]
+    fitB                         = distanceParamsMat['b'][0][0]
+    cutOffsPre                   = distanceParamsMat['cutOffs'][0]
+    distancesCM                  = distanceParamsMat['actualDistances'][0]
+    cutOffs = []
+    for indexIn in range(numOfHomographies-1):
+        cutOffs.append([cutOffsPre[indexIn],cutOffsPre[indexIn+1]])
+    cutOffs.append([cutOffsPre[indexIn+1],np.inf])
+    return fitA, fitB, cutOffs, distancesCM.tolist();
+
+
+def mat2PyGetCornerPointsMono(imagePoints,\
+                                fileNamesIn,\
+                                    horizontalSquares,\
+                                        verticalSquares):
+
+    horizontalInnerCorners = horizontalSquares-1
+    verticalInnerCorners   = verticalSquares-1
+
+    print("Organizing Corner Points")
+    imageCorners  = []
+    fileNames  =  []
+
+
+    for imageIndex in range(len(imagePoints[0][0])):
+        imageCurrentCorners  = []
+
+        for cornerIndex in range(len(imagePoints)):
+
+            XCordCurrent= np.float32(imagePoints[cornerIndex][0][imageIndex])
+            YCordCurrent= np.float32(imagePoints[cornerIndex][1][imageIndex])
+            imageCurrentCorners.append([[XCordCurrent,YCordCurrent]])
+
+        imageCorners.append(imageCurrentCorners)
+
+    corners = np.array(imageCorners)
+
+    print("Rearanging Corners for Python")
+    cornersArranged  = corners
+
+    for imageIndex in range(len(imagePoints[0][0])):
+
+        for cornerIndex in range(len(imagePoints)):
+
+            arrangedIndex = horizontalInnerCorners*((cornerIndex)%verticalInnerCorners)\
+                                + math.floor(cornerIndex/verticalInnerCorners)
+
+            cornersArranged[imageIndex][arrangedIndex]  = \
+                                            imageCorners[imageIndex][cornerIndex]
+
+    # Organizing the file names
+    print("Organizing File Names")
+    for imageFileName in fileNamesIn[0]:
+        fileNames.append(imageFileName[0])
+
+    return cornersArranged,fileNames;
 
 def printLabel(inputString):
     print(" ")

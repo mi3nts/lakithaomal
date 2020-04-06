@@ -33,8 +33,6 @@ stereoParams  = pickle.load(open("stereoParams_Feb_12_2020.p", "rb"))
 thermalParams = pickle.load(open("thermalParams_Feb_12_2020.p", "rb"))
 overlayParams = pickle.load(open("overlayParams_Feb_20_2020.p", "rb"))
 
-
-
 cutOffs       = overlayParams['cutOffs ']
 homographyAll = overlayParams['homographyAll']
 

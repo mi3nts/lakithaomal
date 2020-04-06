@@ -53,6 +53,59 @@ def resizeImages(source,destination,widthIn):
         print("Directory '{}' does not exist".format(sourceLeft))
 
 
+
+
+
+def saveRectifiedForMatStereo(leftFileNames,rightFileNames,stereoParams):
+    for leftFileNamesCurrent,rightFileNamesCurrent in \
+                   zip(leftFileNames,rightFileNames):
+
+        imLeft  = cv2.imread(leftFileNamesCurrent)
+        imRight = cv2.imread(rightFileNamesCurrent)
+
+        imLeftRemapped =cv2.remap(imLeft,stereoParams['mapXLeft'],\
+                                            stereoParams['mapYLeft'],\
+                                                cv2.INTER_CUBIC)
+
+        imRightRemapped=cv2.remap(imRight,stereoParams['mapXRight'],\
+                                            stereoParams['mapYRight'],
+                                                cv2.INTER_CUBIC)
+
+        newLeft  = leftFileNamesCurrent.replace("Resized", "ResizedRectified")
+        newRight = rightFileNamesCurrent.replace("Resized", "ResizedRectified")
+
+        print("Writing Rectified Left  Image of '{}' as '{}'".format(leftFileNamesCurrent,newRight))
+        cv2.imwrite(newLeft,    imLeftRemapped);
+        print("Writing Rectified Right Image of '{}' as '{}'".format(rightFileNamesCurrent,newRight))
+        cv2.imwrite(newRight,   imRightRemapped);
+
+
+def saveUndistortedForMatThermal(thermalFileNames,thermalParams):
+    for thermalFileNamesCurrent in thermalFileNames:
+
+        imThermal  = cv2.imread(thermalFileNamesCurrent)
+
+        imThermalRemapped = cv2.undistort(\
+                                    imThermal,\
+                                    thermalParams['mtxThermal'],\
+                                    thermalParams['distThermal']
+                                    , None,\
+                                    thermalParams['newcameramtx']\
+                                    )
+
+        newThermal  = thermalFileNamesCurrent.replace("thermal", "thermalUndistorted")
+
+        print("Writing Rectified Thermal  Image of '{}' as '{}'".format(thermalFileNamesCurrent,newThermal))
+        cv2.imwrite(newThermal,    imThermalRemapped);
+
+
+def getReplacedFileNames(leftFileNames,replace,replaceWith):
+    thermalFileNames = []
+    for leftFileName in leftFileNames:
+        thermalFileNames.append(leftFileName.replace(replace,replaceWith))
+    return thermalFileNames;
+
+
 cr.printLabel("Going Through Left Files")
 resizeImages(sourceLeft,destinationLeft,resizeWidth)
 

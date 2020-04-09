@@ -73,83 +73,73 @@ beta = (1.0 - alpha)
 def main():
     cr.printLabel("Loading 3 Way Image ")
     now = datetime.datetime.now()
-    valid,left,right,thermal = hdf5Reader(readName1)
-    leftScaled,rightScaled             = scaleStereo(left,right,resizeWidth)
-    # distanceImageF, finalCelciusImageF = overlayReturn001(leftScaled,rightScaled,thermal,stereoParams,thermalParams,leftMatcher,overlayParams)
+    # valid,left,right,thermal           = hdf5Reader(readName1)
+    # leftScaled,rightScaled             = scaleStereo(left,right,resizeWidth)
+    distanceImageF, finalCelciusImageF = overlayReturn002(leftImageName,rightImageName,thermalImageName,stereoParams,thermalParams,leftMatcher,overlayParams)
 
-    now = datetime.datetime.now()
-    distanceCM               = getDistanceImage(leftScaled,rightScaled,stereoParams,leftMatcher,fitA,fitB)
-    celcius                  = getCelciusUndistorted(thermal,thermalParams)
-    distanceCMF              = getReverseMapping(distanceCM,stereoParams)
-    shape        = leftScaled.shape
-    celciusMasks = np.zeros((shape[0], shape[1],len(homographyAll)),dtype=np.bool)
-
-    now = datetime.datetime.now()
-    for indexIn in range(len(homographyAll)):
-        celciusMasks[:,:,indexIn]= (cutOffs[indexIn][0]<=distanceCM )&\
-                                                    (distanceCM <cutOffs[indexIn][1])
-
-    celciusImages = np.zeros((shape[0], shape[1],len(homographyAll)),dtype=np.uint16)
     print(datetime.datetime.now()-now)
+    celcius = finalCelciusImageF
+    cmap = plt.cm.jet
+    norm = plt.Normalize(vmin=celcius.min(), vmax=celcius.max())
 
-    now = datetime.datetime.now()
-    for indexIn in range(len(homographyAll)):
-        celciusImages[:,:,indexIn]     = cv2.warpPerspective(celcius,\
-                                                                homographyAll[indexIn],\
-                                                                (shape[1], shape[0]))
-    celciusImagesFinal = np.zeros((shape[0], shape[1],len(homographyAll)),dtype=np.uint16)
-    print(datetime.datetime.now()-now)
-
-    now = datetime.datetime.now()
-    for indexIn in range(len(homographyAll)):
-        celciusImagesFinal[:,:,indexIn] = np.multiply(celciusMasks[:,:,indexIn],celciusImages[:,:,indexIn])
-    print(datetime.datetime.now()-now)
-
-    now = datetime.datetime.now()
-    np.sum(celciusImagesFinal,axis = 2)
-    print(datetime.datetime.now()-now)
-
-
+        # map the normalized data to colors
+        # image is now RGBA (512x512x4)
+    thermal = cmap(norm(celcius))
+    plt.imsave('thermal.png',thermal)
+    thermal = cv2.cvtColor(cv2.imread('thermal.png'), cv2.COLOR_BGR2RGB)
+    
+    overlay = cv2.addWeighted(leftScaled,alpha,thermal,beta,0)
     plt.subplot(221)
-    plt.imshow(np.sum(celciusImagesFinal,axis = 2))
-    # plt.subplot(222)
-    # plt.imshow(cv2.cvtColor(rightScaled, cv2.COLOR_BGR2RGB))
-    # plt.subplot(223)
-    # plt.imshow(ktoc(cv2.resize(thermal[:,:], (640, 480))),cmap='jet')
-    plt.suptitle("All")
+    plt.imshow(cv2.cvtColor(leftScaled, cv2.COLOR_BGR2RGB))
+    plt.title("Left")
+    plt.subplot(222)
+    plt.imshow(distanceImageF,cmap='rainbow')
+    plt.title("Distance")
+    plt.subplot(223)
+    plt.imshow(finalCelciusImageF,cmap='jet')
+    plt.title("Thermal")
+    plt.subplot(224)
+    plt.imshow(overlay)
+    plt.suptitle("Stereo Thermal Overlay")
     plt.show()
+
+
+
+
+    # now = datetime.datetime.now()
+    # distanceCM               = getDistanceImage(leftScaled,rightScaled,stereoParams,leftMatcher,fitA,fitB)
+    # celcius                  = getCelciusUndistorted(thermal,thermalParams)
+    # distanceCMF              = getReverseMapping(distanceCM,stereoParams)
+    # shape        = leftScaled.shape
+    # celciusMasks = np.zeros((shape[0], shape[1],len(homographyAll)),dtype=np.bool)
     #
+    # now = datetime.datetime.now()
+    # for indexIn in range(len(homographyAll)):
+    #     celciusMasks[:,:,indexIn]= (cutOffs[indexIn][0]<=distanceCM )&\
+    #                                                 (distanceCM <cutOffs[indexIn][1])
     #
-    #
-    #
-    #
+    # celciusImages = np.zeros((shape[0], shape[1],len(homographyAll)),dtype=np.uint16)
     # print(datetime.datetime.now()-now)
-    # celcius = finalCelciusImageF
-    # cmap = plt.cm.jet
-    # norm = plt.Normalize(vmin=celcius.min(), vmax=celcius.max())
     #
-    #     # map the normalized data to colors
-    #     # image is now RGBA (512x512x4)
-    # thermal = cmap(norm(celcius))
-    # plt.imsave('thermal.png',thermal)
+    # now = datetime.datetime.now()
+    # for indexIn in range(len(homographyAll)):
+    #     celciusImages[:,:,indexIn]     = cv2.warpPerspective(celcius,\
+    #                                                             homographyAll[indexIn],\
+    #                                                             (shape[1], shape[0]))
+    # celciusImagesFinal = np.zeros((shape[0], shape[1],len(homographyAll)),dtype=np.uint16)
+    # print(datetime.datetime.now()-now)
     #
+    # now = datetime.datetime.now()
+    # for indexIn in range(len(homographyAll)):
+    #     celciusImagesFinal[:,:,indexIn] = np.multiply(celciusMasks[:,:,indexIn],celciusImages[:,:,indexIn])
+    # print(datetime.datetime.now()-now)
     #
-    # thermal = cv2.cvtColor(cv2.imread('thermal.png'), cv2.COLOR_BGR2RGB)
+    # now = datetime.datetime.now()
+    # np.sum(celciusImagesFinal,axis = 2)
+    # print(datetime.datetime.now()-now)
+
     #
-    #
-    # overlay = cv2.addWeighted(leftScaled,alpha,thermal,beta,0)
-#
-    # # plt.figure()
-    # plt.subplot(221)
-    # plt.imshow(cv2.cvtColor(leftScaled, cv2.COLOR_BGR2RGB))
-    # plt.subplot(222)
-    # plt.imshow(distanceImageF,cmap='rainbow')
-    # plt.subplot(223)
-    # plt.imshow(finalCelciusImageF,cmap='jet')
-    # plt.subplot(224)
-    # plt.imshow(overlay)
-    # plt.suptitle("All")
-    # plt.show()
+
 
     # print("Going in to the loop")
     # while(True):
@@ -295,7 +285,7 @@ def getReverseMapping(imageIn,stereoParams):
 
 
 
-print("Overlay Function")
+
 def overlayReturn001(leftImage,rightImage,thermal,stereoParams,thermalParams,leftMatcher,overlayParams):
 
     thermalData   = cv2.resize(thermal[:,:], (640, 480))
@@ -345,6 +335,55 @@ def overlayReturn001(leftImage,rightImage,thermal,stereoParams,thermalParams,lef
     return distanceImageF, finalCelciusImageF;
 
 
+
+
+def overlayReturn002(leftImageName,rightImageName,thermalImageName,stereoParams,thermalParams,leftMatcher,overlayParams):
+
+    thermalData   = cv2.resize(thermal[:,:], (640, 480))
+    thermalCelcius = ktoc(thermalData)
+
+    frameLeftRect    = cv2.remap(leftImage ,stereoParams['mapXLeft'],\
+                                                            stereoParams['mapYLeft'],\
+                                                                        cv2.INTER_CUBIC)
+    frameRightRect   = cv2.remap(rightImage,stereoParams['mapXRight'],\
+                                                                    stereoParams['mapYRight'],
+                                                                        cv2.INTER_CUBIC)
+
+    frameCelciusRect = cv2.undistort(\
+                                        thermalCelcius,\
+                                        thermalParams['mtxThermal'],\
+                                        thermalParams['distThermal']
+                                        , None,\
+                                        thermalParams['newcameramtx']\
+                                        )
+
+    disparityPre     = leftMatcher.compute(frameLeftRect,frameRightRect)
+    distanceImage    = overlayParams['fitA']*(disparityPre**overlayParams['fitB'])
+
+
+
+
+    rows,cols,ch = frameLeftRect.shape
+    finalCelciusImage     = np.zeros((rows,cols))
+
+    for indexIn in range(len(homographyAll)):
+        maskCelclius          = (cutOffs[indexIn][0]<=distanceImage)&\
+                                                    (distanceImage<cutOffs[indexIn][1])
+
+        celciusImage          = cv2.warpPerspective(frameCelciusRect,\
+                                                                homographyAll[indexIn],\
+                                                                (cols,rows))
+        maskedCelciusImage    = np.multiply(maskCelclius,celciusImage)
+        finalCelciusImage     = finalCelciusImage + maskedCelciusImage
+
+    distanceImageF = cv2.remap(distanceImage ,stereoParams['mapXLeftReverse'],\
+                                                        stereoParams['mapYLeftReverse'],\
+                                                                cv2.INTER_CUBIC)
+    finalCelciusImageF = cv2.remap(finalCelciusImage ,stereoParams['mapXLeftReverse'],\
+                                                    stereoParams['mapYLeftReverse'],\
+                                                            cv2.INTER_CUBIC)
+
+    return distanceImageF, finalCelciusImageF;
 
 
 

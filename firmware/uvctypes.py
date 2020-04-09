@@ -12,6 +12,17 @@ import platform
 #   print("Error: could not find libuvc!")
 #   exit(1)
 
+# import os.path
+# homedir = os.path.expanduser("~")
+# print(homedir)
+# import getpass
+# username = getpass.getuser()
+# print(username)
+# import os
+# homedir = os.environ['HOME']
+# print(homedir)
+
+
 libuvc = cdll.LoadLibrary("/home/teamlary/libuvc/src/libuvc.so")
 
 class uvc_context(Structure):

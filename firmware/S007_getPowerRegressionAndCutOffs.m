@@ -7,8 +7,8 @@ clear all
 saveNamePre = 'dataFiles/DF_007_distanceParams_Jetson'
 addpath("functions/")
 
-jetsonSN    = '001'
-setNum      = '2'
+jetsonSN    = '002'
+setNum      = '1'
 
 actualDistances   = [40:10:320];
 cutOffs(1) = 0

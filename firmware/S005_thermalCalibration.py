@@ -29,11 +29,16 @@ import datetime
 cr.printMINTS("fevSen")
 
 cr.printLabel("User Defined Variables")
-loadName = 'dataFiles/DF_004_pythonThermalJetson001_Set2_2020_04_02.mat'
+loadName = 'dataFiles/DF_004_pythonThermalJetson002_Set1_2020_04_10_13_11_27.mat'
 dateTime = datetime.datetime.now()
+jetsonNum = "002"
+setNum    = "1"
+
 horizontalSquares = 8
 verticalSquares   = 7
-saveName =  "dataFiles/DF_005_thermalParams_Jetson001_{}_{}_{}_{}_{}_{}.p".format(\
+saveName =  "dataFiles/DF_005_thermalParams_Jetson{}_Set{}_{}_{}_{}_{}_{}_{}.p".format(\
+                                            jetsonNum,\
+                                            setNum,\
                                             str(dateTime.year).zfill(4),\
                                             str(dateTime.month).zfill(2),\
                                             str(dateTime.day).zfill(2),\
@@ -58,7 +63,7 @@ thermalFileNames, thermalCorners,\
 
 
 cr.printLabel("Validating Thermal Undistortion")
-cr.thermalTestUndistort(thermalFileNames[0],mtxThermal,distThermal,newCameraMtx,10000)
+cr.thermalTestUndistort(thermalFileNames[0],mtxThermal,distThermal,newCameraMtx,1000)
 
 cr.printLabel("Thermal Parametors")
 thermalParams = {\

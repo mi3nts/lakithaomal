@@ -27,58 +27,67 @@ print(cv2.__version__)
 #  Loading data from the stereo calibration
 
 print("Loading data from the stereo calibration")
-stereoParams  = pickle.load(open("dataFiles/DF_003_stereoParams_Jetson001_2020_04_02_19_05_49.p", "rb"))
-thermalParams = pickle.load(open("dataFiles/DF_005_thermalParams_Jetson001_2020_04_02_22_55_59.p", "rb"))
+stereoParams  = pickle.load(open("dataFiles/DF_003_stereoParams_Jetson002_Set1_2020_04_10_14_09_01.p", "rb"))
+leftAndRightParametors = loadmat('dataFiles/DF_002_pythonVisualJetson002_Set1_2020_04_10_14_07_40.mat')
 
 
-leftAndRightParametors = loadmat('dataFiles/DF_002_pythonVisualJetson001_Set2_2020_04_01.mat')
+
 imageFileNamesLeft     = leftAndRightParametors['imageFileNames1']
 imageFileNamesRight    = leftAndRightParametors['imageFileNames2']
 
 cr.printLabel("Gaining Stereo File Names from the Matlab Deployment")
 leftFileNames,rightFileNames = cr.mat2PyGetStereoFileNames(imageFileNamesLeft,imageFileNamesRight)
 
-distances = np.arange(40, 321, 10).tolist()
+distances = np.arange(40, 301, 10).tolist()
+cr.printLabel("Number of Distcanes Calibrated :{}".format(len(distances)))
+
+currentIndex = 23
+
+# rawDistances for jetson001= [1005,925,765,657,572,512,460,418,382,352,\
+#                  320,307,289,270,256,240,227,220,208,200,\
+#                  192,182,176,167,160,157,147,144,143\
+#                 ]
+
+# rawDistances for jetson001= \
+            #      [1010,944,778,670,583,520,468,422,390,360,\
+#                  336  ,315,292,275,259,254,241,225,212,208,
+                #  197,192,177,176,165,160,158\
+#                 ]
 
 
-currentIndex = 27
-
-rawDistances = [1005,925,765,657,572,512,460,418,382,352,\
-                 320,307,289,270,256,240,227,220,208,200,\
-                 192,182,176,167,160,157,147,144,143\
-                ]
 
 # Scripting the real values for distance
 
-#0  40cm    = 1005
-#1  50cm    = 925
-#2  60cm    = 765
-#3  70cm    = 657
-#4  80cm    = 572
-#5  90cm    = 512
-#6  100cm   = 460
-#7  110cm   = 418
-#8  120cm   = 382
-#9  130cm   = 352
-#10 140cm   = 320
-#11 150cm   = 307
-#12 160cm   = 289
-#13 170cm   = 270
-#14 180cm   = 256
-#15 190cm   = 240
-#16 200cm   = 227
-#17 210cm   = 220
-#18 220cm   = 208
-#19 230cm   = 200
-#20 240cm   = 192
-#21 250cm   = 182
-#22 260cm   = 176
-#23 270cm   = 167
-#24 280cm   = 160
-#25 290cm   = 157
-#26 300cm   = 147
-#27 310cm   = 144
-#28 320cm   = 143
+# 0  40cm    = 1010
+# 1  50cm    = 944
+# 2  60cm    = 778
+# 3  70cm    = 670
+# 4  80cm    = 583
+# 5  90cm    = 520
+# 6  100cm   = 468
+# 7  110cm   = 422
+# 8  120cm   = 390
+# 9  130cm   = 360
+
+# 10 140cm   = 336
+# 11 150cm   = 315
+# 12 160cm   = 292
+# 13 170cm   = 275
+# 14 180cm   = 259
+# 15 190cm   = 254
+# 16 200cm   = 241
+# 17 210cm   = 225
+# 18 220cm   = 212
+# 19 230cm   = 208
+
+# 20 240cm   = 197
+# 21 250cm   = 192
+# 22 260cm   = 177
+# 23 270cm   = 176
+# 24 280cm   = 165
+# 25 290cm   = 160
+# 26 300cm   = 158
+
 
 leftImage  = cv2.imread(leftFileNames[currentIndex])
 rightImage = cv2.imread(rightFileNames[currentIndex])
@@ -119,7 +128,6 @@ leftMatcher = cv2.StereoSGBM_create(
 disparityPre     = leftMatcher.compute(frameLeftRect,frameRightRect)
 
 # plt.imshow(disparityPre,cmap='rainbow')
-
 # cv2.imshow('Disparity Map', filteredImg)
 # cv2.destroyAllWindows()
 

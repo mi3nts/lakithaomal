@@ -31,14 +31,21 @@ from mintsJetson import camReader as cr
 cr.printMINTS("Fever Sensor Calibration")
 
 cr.printLabel("User Defined Variables")
-loadName1 = 'dataFiles/DF_010_overlayParams_jetson001_Set2_2020_04_04_17_32_48.mat'
-loadName2 = 'dataFiles/DF_007_distanceParams_Jetson001_Set2_2020_04_04_19_02_26.mat'
+loadName1 = 'dataFiles/DF_010_overlayParams_jetson002_Set1_2020_04_11_17_37_56.mat'
+loadName2 = 'dataFiles/DF_007_distanceParams_Jetson002_Set1_2020_04_11_17_02_47.mat'
 
 
 dateTime = datetime.datetime.now()
 horizontalSquares = 8
 verticalSquares   = 7
-saveName =  "dataFiles/DF_011_overlayParams_Jetson001_{}_{}_{}_{}_{}_{}.p".format(\
+
+
+jetsonNum = "002"
+setNum    = "1"
+
+saveName =  "dataFiles/DF_011_overlayParams_Jetson{}_Set{}_{}_{}_{}_{}_{}_{}.p".format(\
+                                            jetsonNum,\
+                                            setNum,\
                                             str(dateTime.year).zfill(4),\
                                             str(dateTime.month).zfill(2),\
                                             str(dateTime.day).zfill(2),\
@@ -76,10 +83,6 @@ cornersLeft, fileNamesLeft      = cr.mat2PyGetCornerPointsMono(leftImagePointsAl
                                     leftFileNames,\
                                         horizontalSquares,\
                                             verticalSquares)
-
-
-
-
 
 cr.printMINTS("Gaining Homogrpahy Data")
 homographyAll = cr.getHomogrpahyParams(cornersLeft,cornersThermal)

@@ -6,7 +6,7 @@ import cv2
 
 cr.printMINTS("fevSen")
 
-directory          = "/home/teamlary/mintsData/jetson001Set2/"
+directory          = "/home/teamlary/mintsData/jetson002Set1/"
 
 sourceLeft         = directory +"left/"
 sourceRight        = directory +"right/"

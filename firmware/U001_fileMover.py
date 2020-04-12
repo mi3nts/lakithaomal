@@ -5,8 +5,8 @@ from mintsJetson import camReader as cr
 
 cr.printMINTS("fevSen")
 
-directory                  = "/home/teamlary/mintsData/jetson001Set3/"
-sourceFolder               = "/home/teamlary/mintsData/jetson001Set2All/"
+directory                  = "/home/teamlary/mintsData/jetson002Set1/"
+sourceFolder               = "/home/teamlary/mintsData/jetson002Set1All/"
 lookUpFolder               = directory +"left/"
 
 destinationFolder           = directory

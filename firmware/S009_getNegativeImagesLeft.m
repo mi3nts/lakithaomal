@@ -21,7 +21,7 @@ clc
 clear all 
 close all 
 
-directory = "/home/teamlary/mintsData/jetson001Set2/leftResizedRectified/"
+directory = "/home/teamlary/mintsData/jetson002Set1/leftResizedRectified/"
 directoryData =  dir( strcat(directory,"*.jpg"))
 imageDataTable  = unique(struct2table(directoryData),'rows')
 mkdir(strrep(directory,"left","leftNegative"))

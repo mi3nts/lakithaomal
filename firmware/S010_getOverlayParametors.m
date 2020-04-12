@@ -6,8 +6,8 @@ close all
 
 saveNamePre = 'dataFiles/DF_010_overlayParams_jetson'
 
-jetsonSN    = '001'
-setNum      = '2'
+jetsonSN    = '002'
+setNum      = '1'
 
 dateTime = now;
 

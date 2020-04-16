@@ -14,4 +14,4 @@ note: Make sure to give the apprproate camera index
 Data collection for the camera calibration process can be done simultaneously. This can be done using the 'p01_triCameraCalibration.py' code.
 
 2020_03_29_19_55_02_652197_left
-```pip install -U numpy
+```pip install -U numpy```
